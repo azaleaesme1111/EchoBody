@@ -13,11 +13,8 @@ import RequireAuth from './router/guards'
 export default function App() {
   return (
     <Routes>
-      {/* 公开页面 */}
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
-
-      {/* 需要登录的页面 */}
       <Route element={<RequireAuth />}>
         <Route path="/" element={<Layout />}>
           <Route index element={<HomePage />} />
