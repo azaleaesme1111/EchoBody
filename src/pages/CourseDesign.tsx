@@ -100,77 +100,26 @@ export default function CourseDesign() {
     setAiResult('')
 
     try {
-      const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+
+      const response = await fetch(`${supabaseUrl}/functions/v1/ai-lesson`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${import.meta.env.VITE_DEEPSEEK_API_KEY}`,
+          Authorization: `Bearer ${supabaseAnonKey}`,
         },
-        body: JSON.stringify({
-          model: 'deepseek-chat',
-          messages: [
-            {
-              role: 'system',
-              content: `You are an expert sex education curriculum designer for schools.
-Your task is to design a structured lesson plan framework in English, based on the topic and age group provided.
-Follow this exact format for your response (use Markdown):
-
-## Topic
-[The lesson topic]
-
-## Target Age Group
-[Elementary / Middle School / High School]
-
-## Learning Objectives
-1. [Objective 1]
-2. [Objective 2]
-3. [Objective 3]
-
-## Materials Needed
-- [Material 1]
-- [Material 2]
-- [Material 3]
-
-## Lesson Flow
-
-### 1. Introduction (5 minutes)
-[Description of the introduction activity]
-
-### 2. Core Teaching (15 minutes)
-[Description of the main teaching content]
-
-### 3. Interactive Activity (15 minutes)
-[Description of the interactive activity]
-
-### 4. Discussion & Sharing (10 minutes)
-[Description of the discussion activity]
-
-### 5. Summary & Homework (5 minutes)
-[Description of the summary]
-
-## Key Teaching Notes
-[Tips for educators on how to handle sensitive topics]
-
-Keep the content age-appropriate, professional, and practical for classroom use.`,
-            },
-            {
-              role: 'user',
-              content: `Topic: ${aiTopic.trim()}\nAge Group: ${aiAgeGroup}`,
-            },
-          ],
-          temperature: 0.7,
-          max_tokens: 800,
-        }),
+        body: JSON.stringify({ topic: aiTopic.trim(), ageGroup: aiAgeGroup }),
       })
 
       const data = await response.json()
 
       if (data.error) {
-        setAiError(data.error.message || 'Request failed')
+        setAiError(data.error)
         return
       }
 
-      setAiResult(data.choices?.[0]?.message?.content || 'No response generated')
+      setAiResult(data.content || 'No response generated')
     } catch (e: any) {
       setAiError(e.message || 'Network error, please try again')
     } finally {

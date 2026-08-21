@@ -1,0 +1,7 @@
+[[registry]]
+name = "deno"
+registry = "https://crates.io"
+
+[dep.deno]
+crate = "deno"
+version = "1.38.0"
