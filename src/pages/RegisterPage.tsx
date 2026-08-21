@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/providers/AuthProvider'
 
 export default function RegisterPage() {
-  const { login, register } = useAuth()
+  const { register } = useAuth()
   const navigate = useNavigate()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -29,9 +29,12 @@ export default function RegisterPage() {
       return
     }
     setLoading(true)
-    await new Promise(r => setTimeout(r, 400))
-    register(email, password, name, role)
-    login(name, role)
+    const result = await register(email, password, name, role)
+    if (result.error) {
+      setError(result.error)
+      setLoading(false)
+      return
+    }
     navigate('/', { replace: true })
   }
 
@@ -119,7 +122,6 @@ export default function RegisterPage() {
                   Teacher
                 </button>
               </div>
-              <p className="text-xs text-gray-400 mt-2">Admin accounts are preset by the system — online registration is not available for admins</p>
             </div>
             {error && <p className="text-sm text-red-500">{error}</p>}
             <button
@@ -127,7 +129,7 @@ export default function RegisterPage() {
               disabled={loading}
               className="w-full btn-primary py-3 text-base"
             >
-              {loading ? 'Registering...' : 'Register & Log in'}
+              {loading ? 'Creating account...' : 'Register & Log in'}
             </button>
           </form>
           <div className="mt-6 text-center text-sm text-gray-500">

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { useAuth, ADMIN_ACCOUNTS } from '@/providers/AuthProvider'
+import { useAuth } from '@/providers/AuthProvider'
 
 export default function LoginPage() {
   const { login } = useAuth()
@@ -19,21 +19,13 @@ export default function LoginPage() {
       return
     }
     setLoading(true)
-    await new Promise(r => setTimeout(r, 400))
-
-    // Admin account verification
-    const adminUser = Object.keys(ADMIN_ACCOUNTS).find(k => k === email)
-    if (adminUser && ADMIN_ACCOUNTS[adminUser] === password) {
-      login(adminUser, 'admin')
-      navigate('/', { replace: true })
+    const result = await login(email, password, role)
+    if (result.error) {
+      setError(result.error)
       setLoading(false)
       return
     }
-
-    // Simulate successful login
-    login(email.split('@')[0], role)
     navigate('/', { replace: true })
-    setLoading(false)
   }
 
   return (
@@ -81,7 +73,6 @@ export default function LoginPage() {
                 Student
               </button>
             </div>
-            <p className="text-xs text-gray-400 mt-2">Admin accounts are preset by the system — log in with admin email</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -119,8 +110,8 @@ export default function LoginPage() {
             <Link to="/register" className="text-violet-600 font-medium hover:text-violet-700"> Sign up</Link>
           </div>
           <div className="mt-4 pt-4 border-t border-gray-100 text-center">
-            <button onClick={() => { login('Demo User', role); navigate('/') }} className="text-sm text-gray-400 hover:text-gray-600 transition-colors">
-              Quick demo (skip login)
+            <button onClick={() => navigate('/')} className="text-sm text-gray-400 hover:text-gray-600 transition-colors">
+              Continue as guest
             </button>
           </div>
         </div>
