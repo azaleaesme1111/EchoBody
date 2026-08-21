@@ -1,9 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 
-const DEEPSEEK_API_KEY = Deno.env.get('DEEPSEEK_API_KEY')
-const DEEPSEEK_API_BASE = Deno.env.get('DEEPSEEK_API_BASE') || 'https://api-gateway.openagents.org/v1'
-const DEEPSEEK_MODEL = Deno.env.get('DEEPSEEK_MODEL') || 'deepseek-4-flash'
-const DEEPSEEK_API_URL = `${DEEPSEEK_API_BASE}/chat/completions`
+const API_KEY = Deno.env.get('GOOGLE_API_KEY')
+const API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent'
 
 const SYSTEM_PROMPT = `You are an expert sex education curriculum designer for schools.
 Your task is to design a structured lesson plan framework in English, based on the topic and age group provided.
@@ -48,20 +46,19 @@ Follow this exact format for your response (use Markdown):
 Keep the content age-appropriate, professional, and practical for classroom use.`
 
 serve(async (req) => {
-  // CORS headers
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-goog-api-key',
   }
 
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
 
-  if (!DEEPSEEK_API_KEY) {
+  if (!API_KEY) {
     return new Response(
-      JSON.stringify({ error: 'DeepSeek API key not configured' }),
+      JSON.stringify({ error: 'Google API key not configured' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
@@ -86,20 +83,22 @@ serve(async (req) => {
   }
 
   try {
-    const response = await fetch(DEEPSEEK_API_URL, {
+    const response = await fetch(API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${DEEPSEEK_API_KEY}`,
+        'X-goog-api-key': API_KEY,
       },
       body: JSON.stringify({
-        model: DEEPSEEK_MODEL,
-        messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
-          { role: 'user', content: `Topic: ${topic.trim()}\nAge Group: ${ageGroup}` },
+        contents: [
+          {
+            parts: [{ text: SYSTEM_PROMPT + '\n\nTopic: ' + topic.trim() + '\nAge Group: ' + ageGroup }],
+          },
         ],
-        temperature: 0.7,
-        max_tokens: 800,
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 1500,
+        },
       }),
     })
 
@@ -107,15 +106,15 @@ serve(async (req) => {
 
     if (data.error) {
       return new Response(
-        JSON.stringify({ error: data.error.message || 'DeepSeek API error' }),
+        JSON.stringify({ error: data.error.message || 'Gemini API error' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    const content = data.choices?.[0]?.message?.content
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text
 
     return new Response(
-      JSON.stringify({ content }),
+      JSON.stringify({ content: text || 'No response generated' }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (e: any) {

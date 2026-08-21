@@ -100,43 +100,22 @@ export default function CourseDesign() {
     setAiResult('')
 
     try {
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
-
-      const response = await fetch(`${supabaseUrl}/functions/v1/ai-lesson`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${supabaseAnonKey}`,
-        },
-        body: JSON.stringify({ topic: aiTopic.trim(), ageGroup: aiAgeGroup }),
+      const { supabase } = await import('@/utils/supabase')
+      const { data, error } = await supabase.functions.invoke('ai-lesson', {
+        body: { topic: aiTopic.trim(), ageGroup: aiAgeGroup },
       })
 
-      if (!response.ok) {
-        const text = await response.text()
-        let errorMsg = `Server error ${response.status}`
-        try {
-          const errData = JSON.parse(text)
-          errorMsg = errData.error || errorMsg
-        } catch {
-          if (text.includes('<!DOCTYPE')) {
-            errorMsg = 'Edge function not deployed yet. Deploy ai-lesson on Supabase Dashboard.'
-          } else {
-            errorMsg = text.slice(0, 200)
-          }
-        }
-        setAiError(errorMsg)
+      if (error) {
+        setAiError(error.message || 'Failed to generate lesson plan')
         return
       }
 
-      const data = await response.json()
-
-      if (data.error) {
+      if (data?.error) {
         setAiError(data.error)
         return
       }
 
-      setAiResult(data.content || 'No response generated')
+      setAiResult(data?.content || 'No response generated')
     } catch (e: any) {
       setAiError(e.message || 'Network error, please try again')
     } finally {
