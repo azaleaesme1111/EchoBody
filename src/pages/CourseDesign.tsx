@@ -112,6 +112,23 @@ export default function CourseDesign() {
         body: JSON.stringify({ topic: aiTopic.trim(), ageGroup: aiAgeGroup }),
       })
 
+      if (!response.ok) {
+        const text = await response.text()
+        let errorMsg = `Server error ${response.status}`
+        try {
+          const errData = JSON.parse(text)
+          errorMsg = errData.error || errorMsg
+        } catch {
+          if (text.includes('<!DOCTYPE')) {
+            errorMsg = 'Edge function not deployed yet. Deploy ai-lesson on Supabase Dashboard.'
+          } else {
+            errorMsg = text.slice(0, 200)
+          }
+        }
+        setAiError(errorMsg)
+        return
+      }
+
       const data = await response.json()
 
       if (data.error) {
