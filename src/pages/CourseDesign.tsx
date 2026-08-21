@@ -67,20 +67,115 @@ const DISCUSSION_QUESTIONS: { id: string; topic: string; question: string; age: 
   { id: '5', topic: 'Seeking Help', question: 'When you encounter difficulties, who would you turn to for help? Why?', age: 'Elementary' },
 ]
 
+const AGE_GROUPS = [
+  { value: 'elementary', label: 'Elementary School' },
+  { value: 'middle', label: 'Middle School' },
+  { value: 'high', label: 'High School' },
+] as const
+
+const TOPIC_EXAMPLES = [
+  'Body Boundaries',
+  'Consent and Personal Space',
+  'Online Social Safety',
+  'Understanding Puberty',
+  'Respectful Relationships',
+  'Dealing with Harassment',
+  'Digital Footprint and Privacy',
+]
+
 export default function CourseDesign() {
   const [tab, setTab] = useState<'template' | 'discussion'>('template')
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null)
   const [expanded, setExpanded] = useState(false)
   const [aiResult, setAiResult] = useState('')
   const [aiLoading, setAiLoading] = useState(false)
+  const [aiError, setAiError] = useState('')
   const [aiTopic, setAiTopic] = useState('')
+  const [aiAgeGroup, setAiAgeGroup] = useState('elementary')
 
   const handleGenerate = async () => {
     if (!aiTopic.trim()) return
     setAiLoading(true)
-    await new Promise(r => setTimeout(r, 1500))
-    setAiResult(`【Topic】${aiTopic}\n\n【Target Grade】Upper Elementary / Middle School\n\n【Learning Objectives】\n1. Help students understand the basic concept of "${aiTopic}"\n2. Cultivate students\' self-protection awareness\n3. Guide students to learn to express their feelings in a safe environment\n\n【Preparation】\n- PPT slides\n- Scenario cards\n- Worksheet\n\n【Lesson Flow】(40 minutes)\n1. Introduction (5 min): Introduce the topic through a story\n2. Knowledge teaching (10 min): Explain core concepts\n3. Interactive activity (15 min): Group discussion / role play\n4. Summary & sharing (10 min): Students share what they learned`)
-    setAiLoading(false)
+    setAiError('')
+    setAiResult('')
+
+    try {
+      const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${import.meta.env.VITE_DEEPSEEK_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: 'deepseek-chat',
+          messages: [
+            {
+              role: 'system',
+              content: `You are an expert sex education curriculum designer for schools.
+Your task is to design a structured lesson plan framework in English, based on the topic and age group provided.
+Follow this exact format for your response (use Markdown):
+
+## Topic
+[The lesson topic]
+
+## Target Age Group
+[Elementary / Middle School / High School]
+
+## Learning Objectives
+1. [Objective 1]
+2. [Objective 2]
+3. [Objective 3]
+
+## Materials Needed
+- [Material 1]
+- [Material 2]
+- [Material 3]
+
+## Lesson Flow
+
+### 1. Introduction (5 minutes)
+[Description of the introduction activity]
+
+### 2. Core Teaching (15 minutes)
+[Description of the main teaching content]
+
+### 3. Interactive Activity (15 minutes)
+[Description of the interactive activity]
+
+### 4. Discussion & Sharing (10 minutes)
+[Description of the discussion activity]
+
+### 5. Summary & Homework (5 minutes)
+[Description of the summary]
+
+## Key Teaching Notes
+[Tips for educators on how to handle sensitive topics]
+
+Keep the content age-appropriate, professional, and practical for classroom use.`,
+            },
+            {
+              role: 'user',
+              content: `Topic: ${aiTopic.trim()}\nAge Group: ${aiAgeGroup}`,
+            },
+          ],
+          temperature: 0.7,
+          max_tokens: 800,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (data.error) {
+        setAiError(data.error.message || 'Request failed')
+        return
+      }
+
+      setAiResult(data.choices?.[0]?.message?.content || 'No response generated')
+    } catch (e: any) {
+      setAiError(e.message || 'Network error, please try again')
+    } finally {
+      setAiLoading(false)
+    }
   }
 
   const selected = TEMPLATES.find(t => t.id === selectedTemplate)
@@ -183,19 +278,80 @@ export default function CourseDesign() {
       {/* AI Assistant */}
       <div className="mt-8 card">
         <h3 className="font-bold text-gray-900 text-lg mb-2">AI Lesson Design Assistant</h3>
-        <p className="text-sm text-gray-500 mb-4">Enter a topic and AI will generate a lesson plan framework for you</p>
-        <div className="flex gap-2">
-          <input type="text" value={aiTopic} onChange={e => setAiTopic(e.target.value)}
-            placeholder="e.g. Body Boundaries, Online Safety..."
-            className="flex-1 px-4 py-3 rounded-xl border border-gray-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-100 outline-none text-gray-900"
-            onKeyDown={e => e.key === 'Enter' && handleGenerate()} />
-          <button onClick={handleGenerate} disabled={aiLoading || !aiTopic.trim()}
-            className="btn-primary px-6 py-3 disabled:opacity-50 whitespace-nowrap">
-            {aiLoading ? 'Generating...' : 'Generate'}
-          </button>
+        <p className="text-sm text-gray-500 mb-4">Select an age group and enter a topic to generate a lesson plan framework</p>
+
+        {/* Age group selector */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-2">Age Group</label>
+          <div className="flex gap-2">
+            {AGE_GROUPS.map(g => (
+              <button
+                key={g.value}
+                type="button"
+                onClick={() => setAiAgeGroup(g.value)}
+                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all border-2 ${
+                  aiAgeGroup === g.value
+                    ? 'border-violet-500 bg-violet-50 text-violet-700'
+                    : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                }`}
+              >
+                {g.label}
+              </button>
+            ))}
+          </div>
         </div>
+
+        {/* Topic input with examples */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-2">Course Topic</label>
+          <input
+            type="text"
+            value={aiTopic}
+            onChange={e => setAiTopic(e.target.value)}
+            placeholder="e.g. Body Boundaries, Consent, Online Safety..."
+            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-100 outline-none text-gray-900"
+            onKeyDown={e => e.key === 'Enter' && handleGenerate()}
+          />
+          <div className="flex flex-wrap gap-2 mt-2">
+            <span className="text-xs text-gray-400">Examples:</span>
+            {TOPIC_EXAMPLES.map(ex => (
+              <button
+                key={ex}
+                type="button"
+                onClick={() => setAiTopic(ex)}
+                className="text-xs bg-violet-50 text-violet-600 px-2.5 py-1 rounded-full hover:bg-violet-100 transition-colors"
+              >
+                {ex}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Generate button */}
+        <button
+          onClick={handleGenerate}
+          disabled={aiLoading || !aiTopic.trim()}
+          className="btn-primary px-6 py-3 disabled:opacity-50"
+        >
+          {aiLoading ? (
+            <span className="flex items-center gap-2">
+              <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+              </svg>
+              Generating...
+            </span>
+          ) : 'Generate Lesson Plan'}
+        </button>
+
+        {/* Error message */}
+        {aiError && (
+          <p className="mt-3 text-sm text-red-500">{aiError}</p>
+        )}
+
+        {/* Generated result */}
         {aiResult && (
-          <div className="mt-4 p-4 bg-gray-50 rounded-xl text-sm text-gray-700 whitespace-pre-wrap max-h-80 overflow-y-auto">
+          <div className="mt-4 p-4 bg-gray-50 rounded-xl text-sm text-gray-700 whitespace-pre-wrap max-h-96 overflow-y-auto">
             {aiResult}
           </div>
         )}
