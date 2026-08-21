@@ -1,7 +1,8 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 
 const DEEPSEEK_API_KEY = Deno.env.get('DEEPSEEK_API_KEY')
-const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions'
+const DEEPSEEK_API_BASE = Deno.env.get('DEEPSEEK_API_BASE') || 'https://api.deepseek.com'
+const DEEPSEEK_API_URL = `${DEEPSEEK_API_BASE}/chat/completions`
 
 const SYSTEM_PROMPT = `You are an expert sex education curriculum designer for schools.
 Your task is to design a structured lesson plan framework in English, based on the topic and age group provided.
