@@ -3,43 +3,43 @@ import { useState } from 'react'
 const QUIZZES = [
   {
     id: '1',
-    question: '同学A在课间走廊主动抱了同学B，同学B的表情看起来不太舒服。同学A的做法对吗？',
+    question: 'Student A voluntarily hugged Student B in the hallway during break, and Student B looked uncomfortable. Was Student A\'s behavior appropriate?',
     options: [
-      { text: '对的，同学之间友好拥抱是正常的', correct: false, feedback: '不一定。每个同学的边界不同，即使同学关系也要先询问对方是否愿意。' },
-      { text: '不对，应该先问对方"我可以抱你吗"', correct: true, feedback: '正确！任何身体接触都应该先征得对方同意。' },
-      { text: '这要看当时的情况', correct: false, feedback: '虽然情境有关，但核心原则是：先询问，再行动。' },
+      { text: 'Yes, friendly hugging between classmates is normal', correct: false, feedback: 'Not necessarily. Every student has different boundaries. Even among friends, you should always ask first.' },
+      { text: 'No, they should have asked "Can I hug you?" first', correct: true, feedback: 'Correct! Any physical contact should be done with the other person\'s consent first.' },
+      { text: 'It depends on the situation', correct: false, feedback: 'While context matters, the core principle is: ask first, then act.' },
     ],
   },
   {
     id: '2',
-    question: '以下哪种情况属于"同意"？',
+    question: 'Which of the following constitutes "consent"?',
     options: [
-      { text: '朋友一直请求，最后你勉强答应了', correct: false, feedback: '不是。同意必须是自愿、热情的，不是被迫的。' },
-      { text: '对方喝了酒，神志不清，你答应了', correct: false, feedback: '不是。醉酒状态下无法做出真正的同意。' },
-      { text: '对方清醒、自愿、热情地表达了同意', correct: true, feedback: '正确！这是FRIES模型中"Free（自由）"和"Enthusiastic（热情）"的体现。' },
+      { text: 'A friend kept asking until you reluctantly agreed', correct: false, feedback: 'No. Consent must be voluntary and enthusiastic, not forced.' },
+      { text: 'The other person was drunk and not thinking clearly, and you agreed', correct: false, feedback: 'No. Someone who is intoxicated cannot give true consent.' },
+      { text: 'The other person was sober, willing, and enthusiastically agreed', correct: true, feedback: 'Correct! This reflects the "Free" and "Enthusiastic" parts of the FRIES model.' },
     ],
   },
   {
     id: '3',
-    question: '你在网上收到一张不合适的照片，对方说"只是给我们看的"，你怎么做？',
+    question: 'You receive an inappropriate photo online. The sender says "It\'s just for us to see." What should you do?',
     options: [
-      { text: '收下但不告诉任何人', correct: false, feedback: '这不安全。即使对方说是秘密，也可能是操控手段。' },
-      { text: '删除并告诉信任的大人', correct: true, feedback: '正确！保护自己是第一位的，告诉大人能帮助解决问题。' },
-      { text: '转发给好朋友一起看', correct: false, feedback: '错误！这会让不良信息扩散，也可能伤害到照片中的人。' },
+      { text: 'Keep it but don\'t tell anyone', correct: false, feedback: 'This is not safe. Even if they call it a secret, it could be a manipulation tactic.' },
+      { text: 'Delete it and tell a trusted adult', correct: true, feedback: 'Correct! Protecting yourself comes first. Telling an adult can help resolve the situation.' },
+      { text: 'Forward it to a close friend to look at together', correct: false, feedback: 'Wrong! This spreads inappropriate content and may harm the person in the photo.' },
     ],
   },
   {
     id: '4',
-    question: '好朋友在派对上喝了很多酒，他/她对你说"我愿意和你回家"。你该怎么做？',
+    question: 'Your good friend had a lot to drink at a party and says to you "I\'m willing to go home with you." What should you do?',
     options: [
-      { text: '既然对方说了愿意，那就没问题', correct: false, feedback: '不是。醉酒状态下无法做出有效同意，照顾对方安全才是正确的。' },
-      { text: '确保他/她安全回家，并联系他/她的朋友或家人', correct: true, feedback: '正确！真正的关心是保护对方的安全，而不是趁人之危。' },
-      { text: '趁对方意识不清，做自己想做的事', correct: false, feedback: '这是违法行为。同意必须是清醒、自愿、明确的。' },
+      { text: 'Since they said yes, it\'s fine', correct: false, feedback: 'No. Someone who is drunk cannot give valid consent. Making sure they are safe is the right thing to do.' },
+      { text: 'Make sure they get home safely and contact their friends or family', correct: true, feedback: 'Correct! True care means protecting the other person\'s safety, not taking advantage of a vulnerable situation.' },
+      { text: 'Take advantage of their impaired state and do what you want', correct: false, feedback: 'This is illegal. Consent must be clear, willing, and given while sober.' },
     ],
   },
 ]
 
-const QUIZ_TITLE = 'Consent 判断练习'
+const QUIZ_TITLE = 'Consent Judgment Quiz'
 
 export default function MiniGames() {
   const [currentIdx, setCurrentIdx] = useState(0)
@@ -79,14 +79,14 @@ export default function MiniGames() {
     return (
       <div className="text-center py-16">
         <div className="text-6xl mb-4">{score >= 3 ? '🎉' : '💪'}</div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">练习完成！</h2>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">Quiz Complete!</h2>
         <p className="text-lg text-gray-500 mb-2">
-          你答对了 <span className="font-bold text-violet-600">{score}</span> / {QUIZZES.length} 题
+          You got <span className="font-bold text-violet-600">{score}</span> / {QUIZZES.length} correct
         </p>
         <p className="text-sm text-gray-400 mb-8">
-          {score === QUIZZES.length ? '太棒了！你对同意有了很好的理解。' : score >= 2 ? '不错的表现，继续学习吧！' : '加油！多练习会越来越好。'}
+          {score === QUIZZES.length ? 'Awesome! You have a great understanding of consent.' : score >= 2 ? 'Nice work! Keep learning!' : 'Keep at it! Practice makes perfect.'}
         </p>
-        <button onClick={handleRestart} className="btn-primary px-8 py-3">再来一次</button>
+        <button onClick={handleRestart} className="btn-primary px-8 py-3">Try again</button>
       </div>
     )
   }
@@ -138,7 +138,7 @@ export default function MiniGames() {
       {showResult && (
         <div className="mt-6 text-center">
           <button onClick={handleNext} className="btn-primary px-8 py-3">
-            {currentIdx < QUIZZES.length - 1 ? '下一题' : '查看结果'}
+            {currentIdx < QUIZZES.length - 1 ? 'Next question' : 'See results'}
           </button>
         </div>
       )}

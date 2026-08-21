@@ -3,68 +3,68 @@ import { useState } from 'react'
 const TEMPLATES: { id: string; title: string; grade: string; duration: string; objectives: string[]; steps: string[] }[] = [
   {
     id: '1',
-    title: '认识我的身体',
-    grade: '小学 3-4年级',
-    duration: '40分钟',
-    objectives: ['认识身体的主要部位', '了解身体的隐私区域', '学会用正确名称称呼身体部位'],
+    title: 'Getting to Know My Body',
+    grade: 'Elementary Grades 3-4',
+    duration: '40 minutes',
+    objectives: ['Recognize main body parts', 'Understand private areas of the body', 'Learn to use correct names for body parts'],
     steps: [
-      '导入：歌曲《头肩膀膝盖脚》激活兴趣（5分钟）',
-      '讲解：人体结构图认识主要部位（10分钟）',
-      '活动：身体部位名称配对卡片游戏（10分钟）',
-      '讨论：哪些部位是隐私的，为什么要保护（10分钟）',
-      '总结：身体自主权儿歌，发放学习卡（5分钟）',
+      'Introduction: Sing "Head, Shoulders, Knees and Toes" to spark interest (5 min)',
+      'Teaching: Use a human body diagram to identify main parts (10 min)',
+      'Activity: Body part name matching card game (10 min)',
+      'Discussion: Which parts are private and why we should protect them (10 min)',
+      'Summary: Body autonomy song, distribute learning cards (5 min)',
     ],
   },
   {
     id: '2',
-    title: '身体边界与尊重',
-    grade: '小学 5-6年级',
-    duration: '45分钟',
-    objectives: ['理解身体边界的概念', '学会识别不舒服的接触', '掌握拒绝不安全接触的方法'],
+    title: 'Body Boundaries and Respect',
+    grade: 'Elementary Grades 5-6',
+    duration: '45 minutes',
+    objectives: ['Understand the concept of body boundaries', 'Learn to identify uncomfortable contact', 'Master methods to refuse unsafe contact'],
     steps: [
-      '导入：绘本故事《不要随便摸我》（5分钟）',
-      '讲解：身体红绿灯概念——安全/不舒服/危险（10分钟）',
-      '情景讨论：几种接触场景判断练习（10分钟）',
-      '角色扮演：学习说"不"的三个技巧（15分钟）',
-      '总结：安全网络图——遇到困难找谁（5分钟）',
+      'Introduction: Picture book story "Don\'t Touch Me Without Asking" (5 min)',
+      'Teaching: Body traffic light concept — safe / uncomfortable / dangerous (10 min)',
+      'Scenario discussion: Practice judging different contact situations (10 min)',
+      'Role play: Learn three techniques for saying "no" (15 min)',
+      'Summary: Safety network map — who to turn to when in difficulty (5 min)',
     ],
   },
   {
     id: '3',
-    title: '性同意（Consent）',
-    grade: '初中 7-9年级',
-    duration: '50分钟',
-    objectives: ['理解同意的定义和要素', '学会识别不同形式的同意', '掌握在关系中表达边界的方法'],
+    title: 'Consent',
+    grade: 'Middle School Grades 7-9',
+    duration: '50 minutes',
+    objectives: ['Understand the definition and elements of consent', 'Learn to identify different forms of consent', 'Master how to express boundaries in relationships'],
     steps: [
-      '导入：案例讨论——"他说好就是同意吗？"（5分钟）',
-      '讲解：FRIES同意模型（Free, Reversible, Informed, Enthusiastic, Specific）（15分钟）',
-      '小组活动：情景卡判断练习（15分钟）',
-      '情景模拟：如何表达同意/拒绝（10分钟）',
-      '总结：尊重彼此边界的承诺墙（5分钟）',
+      'Introduction: Case discussion — "Does saying yes always mean consent?" (5 min)',
+      'Teaching: FRIES consent model (Free, Reversible, Informed, Enthusiastic, Specific) (15 min)',
+      'Group activity: Scenario card judgment practice (15 min)',
+      'Role play: How to express consent / refusal (10 min)',
+      'Summary: Commitment wall on respecting each other\'s boundaries (5 min)',
     ],
   },
   {
     id: '4',
-    title: '网络社交安全',
-    grade: '初中 7-9年级',
-    duration: '40分钟',
-    objectives: ['识别网络社交风险', '学会保护个人隐私信息', '掌握应对网络骚扰的方法'],
+    title: 'Online Social Safety',
+    grade: 'Middle School Grades 7-9',
+    duration: '40 minutes',
+    objectives: ['Identify online social risks', 'Learn to protect personal privacy information', 'Master methods to handle online harassment'],
     steps: [
-      '导入：真实案例讨论（5分钟）',
-      '讲解：网络个人信息安全清单（10分钟）',
-      '情景判断：哪些信息不能分享（10分钟）',
-      '角色扮演：遇到网络骚扰怎么办（10分钟）',
-      '总结：网络安全承诺书（5分钟）',
+      'Introduction: Real case discussion (5 min)',
+      'Teaching: Online personal information safety checklist (10 min)',
+      'Scenario judgment: What information should not be shared (10 min)',
+      'Role play: What to do when encountering online harassment (10 min)',
+      'Summary: Online safety commitment letter (5 min)',
     ],
   },
 ]
 
 const DISCUSSION_QUESTIONS: { id: string; topic: string; question: string; age: string }[] = [
-  { id: '1', topic: '身体边界', question: '如果你不喜欢别人碰你，你可以怎么说？', age: '小学' },
-  { id: '2', topic: '同意', question: '什么是真正的"同意"？不说的意思是同意吗？', age: '初中' },
-  { id: '3', topic: '网络社交', question: '在网上遇到让你不舒服的对话，你应该怎么做？', age: '初中' },
-  { id: '4', topic: '熟人关系', question: '如果是熟人让你不舒服，你有权利说"不"吗？', age: '初中' },
-  { id: '5', topic: '寻求帮助', question: '当你遇到困难时，你会找谁帮忙？为什么？', age: '小学' },
+  { id: '1', topic: 'Body Boundaries', question: 'If you don\'t like someone touching you, what can you say?', age: 'Elementary' },
+  { id: '2', topic: 'Consent', question: 'What is true "consent"? Does staying silent mean consent?', age: 'Middle School' },
+  { id: '3', topic: 'Online Social', question: 'What should you do if someone makes you uncomfortable online?', age: 'Middle School' },
+  { id: '4', topic: 'Acquaintance Relationships', question: 'If someone you know makes you uncomfortable, do you have the right to say "no"?', age: 'Middle School' },
+  { id: '5', topic: 'Seeking Help', question: 'When you encounter difficulties, who would you turn to for help? Why?', age: 'Elementary' },
 ]
 
 export default function CourseDesign() {
@@ -79,7 +79,7 @@ export default function CourseDesign() {
     if (!aiTopic.trim()) return
     setAiLoading(true)
     await new Promise(r => setTimeout(r, 1500))
-    setAiResult(`【课程主题】${aiTopic}\n\n【适用年级】小学高年级 / 初中\n\n【课程目标】\n1. 帮助学生理解"${aiTopic}"的基本概念\n2. 培养学生的自我保护意识\n3. 引导学生学会在安全环境中表达感受\n\n【活动准备】\n- PPT课件\n- 情景卡片\n- 学习单\n\n【课程流程】（40分钟）\n1. 导入（5分钟）：通过故事引入主题\n2. 知识讲解（10分钟）：核心概念说明\n3. 互动活动（15分钟）：小组讨论/角色扮演\n4. 总结分享（10分钟）：学生分享收获`)
+    setAiResult(`【Topic】${aiTopic}\n\n【Target Grade】Upper Elementary / Middle School\n\n【Learning Objectives】\n1. Help students understand the basic concept of "${aiTopic}"\n2. Cultivate students\' self-protection awareness\n3. Guide students to learn to express their feelings in a safe environment\n\n【Preparation】\n- PPT slides\n- Scenario cards\n- Worksheet\n\n【Lesson Flow】(40 minutes)\n1. Introduction (5 min): Introduce the topic through a story\n2. Knowledge teaching (10 min): Explain core concepts\n3. Interactive activity (15 min): Group discussion / role play\n4. Summary & sharing (10 min): Students share what they learned`)
     setAiLoading(false)
   }
 
@@ -93,7 +93,7 @@ export default function CourseDesign() {
             className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
               tab === t ? 'bg-violet-600 text-white' : 'bg-white text-gray-500 border border-gray-200'
             }`}>
-            {t === 'template' ? '课程模板' : '讨论问题库'}
+            {t === 'template' ? 'Lesson Templates' : 'Discussion Questions'}
           </button>
         ))}
       </div>
@@ -124,13 +124,13 @@ export default function CourseDesign() {
               <div className="flex justify-between items-center mb-4">
                 <h3 className="font-bold text-gray-900 text-lg">{selected.title}</h3>
                 <button onClick={() => setExpanded(!expanded)} className="text-sm text-violet-600 font-medium">
-                  {expanded ? '收起' : '查看详情'}
+                  {expanded ? 'Collapse' : 'View details'}
                 </button>
               </div>
               {expanded && (
                 <div className="space-y-4">
                   <div>
-                    <h4 className="text-sm font-medium text-gray-700 mb-2">课程目标</h4>
+                    <h4 className="text-sm font-medium text-gray-700 mb-2">Objectives</h4>
                     <ul className="space-y-1">
                       {selected.objectives.map((o, i) => (
                         <li key={i} className="text-sm text-gray-600 flex items-start gap-2">
@@ -140,7 +140,7 @@ export default function CourseDesign() {
                     </ul>
                   </div>
                   <div>
-                    <h4 className="text-sm font-medium text-gray-700 mb-2">课程流程</h4>
+                    <h4 className="text-sm font-medium text-gray-700 mb-2">Lesson Flow</h4>
                     <ol className="space-y-2">
                       {selected.steps.map((s, i) => (
                         <li key={i} className="text-sm text-gray-600 flex items-start gap-3">
@@ -151,8 +151,8 @@ export default function CourseDesign() {
                     </ol>
                   </div>
                   <div className="flex gap-2 pt-2">
-                    <button className="btn-primary text-sm py-2 px-4">导出教案</button>
-                    <button className="btn-secondary text-sm py-2 px-4">下载PPT模板</button>
+                    <button className="btn-primary text-sm py-2 px-4">Export Lesson Plan</button>
+                    <button className="btn-secondary text-sm py-2 px-4">Download PPT Template</button>
                   </div>
                 </div>
               )}
@@ -180,18 +180,18 @@ export default function CourseDesign() {
         </div>
       )}
 
-      {/* AI 辅助 */}
+      {/* AI Assistant */}
       <div className="mt-8 card">
-        <h3 className="font-bold text-gray-900 text-lg mb-2">AI 辅助课程设计</h3>
-        <p className="text-sm text-gray-500 mb-4">输入课程主题，AI 帮你生成教案框架</p>
+        <h3 className="font-bold text-gray-900 text-lg mb-2">AI Lesson Design Assistant</h3>
+        <p className="text-sm text-gray-500 mb-4">Enter a topic and AI will generate a lesson plan framework for you</p>
         <div className="flex gap-2">
           <input type="text" value={aiTopic} onChange={e => setAiTopic(e.target.value)}
-            placeholder="例如：身体边界、网络社交安全..."
+            placeholder="e.g. Body Boundaries, Online Safety..."
             className="flex-1 px-4 py-3 rounded-xl border border-gray-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-100 outline-none text-gray-900"
             onKeyDown={e => e.key === 'Enter' && handleGenerate()} />
           <button onClick={handleGenerate} disabled={aiLoading || !aiTopic.trim()}
             className="btn-primary px-6 py-3 disabled:opacity-50 whitespace-nowrap">
-            {aiLoading ? '生成中...' : '生成教案'}
+            {aiLoading ? 'Generating...' : 'Generate'}
           </button>
         </div>
         {aiResult && (

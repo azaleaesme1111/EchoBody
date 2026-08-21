@@ -1,7 +1,7 @@
 {
-  "name": "EchoBody｜身体之间",
+  "name": "EchoBody",
   "short_name": "EchoBody",
-  "description": "面向性教育场景的课堂解决方案",
+  "description": "An interactive platform for puberty and consent education",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f5f3ff",

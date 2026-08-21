@@ -6,7 +6,7 @@ export interface User {
   role: 'teacher' | 'student' | 'admin'
 }
 
-// 预设管理员账号
+// Preset admin accounts
 export const ADMIN_ACCOUNTS: Record<string, string> = {
   admin: 'admin123',
   admin01: 'admin123',

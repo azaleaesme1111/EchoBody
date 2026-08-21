@@ -35,10 +35,10 @@ export default function Layout() {
                   {user.name[0]}
                 </div>
                 <span className="text-sm text-gray-600 hidden sm:block">{user.name}</span>
-                <button onClick={handleLogout} className="text-xs text-gray-400 hover:text-gray-600 transition-colors">退出</button>
+                <button onClick={handleLogout} className="text-xs text-gray-400 hover:text-gray-600 transition-colors">Log out</button>
               </div>
             ) : (
-              <Link to="/login" className="text-sm text-violet-600 font-medium hover:text-violet-700">登录</Link>
+              <Link to="/login" className="text-sm text-violet-600 font-medium hover:text-violet-700">Log in</Link>
             )}
             <button onClick={() => setMenuOpen(!menuOpen)} className="lg:hidden p-2 rounded-lg hover:bg-violet-50 transition-colors">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

@@ -16,8 +16,7 @@ export default function HomePage() {
           </svg>
         </div>
         <h1 className="text-5xl font-bold text-gray-900 mb-4">EchoBody</h1>
-        <p className="text-xl text-violet-600 font-medium mb-3">身体之间</p>
-        <p className="text-gray-500 max-w-lg mx-auto">帮助老师设计与开展高质量性教育课程的互动教学平台</p>
+        <p className="text-gray-500 max-w-lg mx-auto">An interactive teaching platform to help educators design and deliver high-quality puberty and consent education courses</p>
       </div>
 
       {/* Module grid */}
@@ -36,7 +35,7 @@ export default function HomePage() {
               <p className="text-sm text-gray-500 mt-1 leading-relaxed">{m.desc}</p>
             </div>
             <div className="mt-2 text-sm font-medium" style={{ color: m.color }}>
-              进入模块
+              Enter module
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="inline ml-0.5">
                 <path d="M5 12h14M12 5l7 7-7 7" />
               </svg>
@@ -48,19 +47,19 @@ export default function HomePage() {
       {/* Quick stats for teachers */}
       {user?.role === 'teacher' && (
         <div className="mt-10 card">
-          <h3 className="font-bold text-gray-900 mb-4">我的教学概览</h3>
+          <h3 className="font-bold text-gray-900 mb-4">My Teaching Overview</h3>
           <div className="grid grid-cols-3 gap-4 text-center">
             <div>
               <div className="text-2xl font-bold text-violet-600">3</div>
-              <div className="text-xs text-gray-500 mt-1">已备课次</div>
+              <div className="text-xs text-gray-500 mt-1">Lessons prepared</div>
             </div>
             <div>
               <div className="text-2xl font-bold text-pink-600">12</div>
-              <div className="text-xs text-gray-500 mt-1">待处理问题</div>
+              <div className="text-xs text-gray-500 mt-1">Pending questions</div>
             </div>
             <div>
               <div className="text-2xl font-bold text-blue-600">8</div>
-              <div className="text-xs text-gray-500 mt-1">公开讨论</div>
+              <div className="text-xs text-gray-500 mt-1">Public discussions</div>
             </div>
           </div>
         </div>
@@ -68,7 +67,7 @@ export default function HomePage() {
 
       {/* Footer info */}
       <div className="mt-16 text-center text-sm text-gray-400 pb-4">
-        <p>EchoBody · 身体之间 · v0.1</p>
+        <p>EchoBody · v0.1</p>
       </div>
     </div>
   )

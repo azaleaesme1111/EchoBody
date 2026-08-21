@@ -17,15 +17,15 @@ export default function RegisterPage() {
     e.preventDefault()
     setError('')
     if (!name || !email || !password || !confirmPassword) {
-      setError('请填写所有字段')
+      setError('Please fill in all fields')
       return
     }
     if (password !== confirmPassword) {
-      setError('两次密码不一致')
+      setError('Passwords do not match')
       return
     }
     if (password.length < 6) {
-      setError('密码至少6位')
+      setError('Password must be at least 6 characters')
       return
     }
     setLoading(true)
@@ -46,25 +46,25 @@ export default function RegisterPage() {
               <path d="M12 6v6l4 2" />
             </svg>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900">创建账号</h1>
-          <p className="text-gray-500 mt-2">加入 EchoBody</p>
+          <h1 className="text-3xl font-bold text-gray-900">Create Account</h1>
+          <p className="text-gray-500 mt-2">Join EchoBody</p>
         </div>
 
         {/* Form */}
         <div className="bg-white rounded-2xl shadow-sm border border-violet-100 p-8">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">姓名</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Name</label>
               <input
                 type="text"
                 value={name}
                 onChange={e => setName(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-100 outline-none transition-all text-gray-900"
-                placeholder="请输入姓名"
+                placeholder="Enter your name"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">邮箱</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
               <input
                 type="email"
                 value={email}
@@ -74,27 +74,27 @@ export default function RegisterPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">密码</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
               <input
                 type="password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-100 outline-none transition-all text-gray-900"
-                placeholder="至少6位密码"
+                placeholder="At least 6 characters"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">确认密码</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Confirm Password</label>
               <input
                 type="password"
                 value={confirmPassword}
                 onChange={e => setConfirmPassword(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-100 outline-none transition-all text-gray-900"
-                placeholder="再次输入密码"
+                placeholder="Re-enter your password"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">注册身份</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Register as</label>
               <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
@@ -105,7 +105,7 @@ export default function RegisterPage() {
                       : 'border-gray-200 text-gray-500 hover:border-gray-300'
                   }`}
                 >
-                  学生
+                  Student
                 </button>
                 <button
                   type="button"
@@ -116,10 +116,10 @@ export default function RegisterPage() {
                       : 'border-gray-200 text-gray-500 hover:border-gray-300'
                   }`}
                 >
-                  教师
+                  Teacher
                 </button>
               </div>
-              <p className="text-xs text-gray-400 mt-2">管理员账号由系统预设，不支持在线注册</p>
+              <p className="text-xs text-gray-400 mt-2">Admin accounts are preset by the system — online registration is not available for admins</p>
             </div>
             {error && <p className="text-sm text-red-500">{error}</p>}
             <button
@@ -127,12 +127,12 @@ export default function RegisterPage() {
               disabled={loading}
               className="w-full btn-primary py-3 text-base"
             >
-              {loading ? '注册中...' : '注册并登录'}
+              {loading ? 'Registering...' : 'Register & Log in'}
             </button>
           </form>
           <div className="mt-6 text-center text-sm text-gray-500">
-            已有账号？
-            <Link to="/login" className="text-violet-600 font-medium hover:text-violet-700">立即登录</Link>
+            Already have an account?
+            <Link to="/login" className="text-violet-600 font-medium hover:text-violet-700"> Log in</Link>
           </div>
         </div>
       </div>

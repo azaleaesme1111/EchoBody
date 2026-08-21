@@ -2,14 +2,12 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth, ADMIN_ACCOUNTS } from '@/providers/AuthProvider'
 
-type LoginRole = 'teacher' | 'student'
-
 export default function LoginPage() {
   const { login } = useAuth()
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [role, setRole] = useState<LoginRole>('teacher')
+  const [role, setRole] = useState<'teacher' | 'student'>('teacher')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -17,13 +15,13 @@ export default function LoginPage() {
     e.preventDefault()
     setError('')
     if (!email || !password) {
-      setError('请填写邮箱和密码')
+      setError('Please fill in both email and password')
       return
     }
     setLoading(true)
     await new Promise(r => setTimeout(r, 400))
 
-    // 管理员账号验证
+    // Admin account verification
     const adminUser = Object.keys(ADMIN_ACCOUNTS).find(k => k === email)
     if (adminUser && ADMIN_ACCOUNTS[adminUser] === password) {
       login(adminUser, 'admin')
@@ -32,7 +30,7 @@ export default function LoginPage() {
       return
     }
 
-    // 模拟登录成功
+    // Simulate successful login
     login(email.split('@')[0], role)
     navigate('/', { replace: true })
     setLoading(false)
@@ -50,16 +48,15 @@ export default function LoginPage() {
             </svg>
           </div>
           <h1 className="text-3xl font-bold text-gray-900">EchoBody</h1>
-          <p className="text-gray-500 mt-2">身体之间</p>
         </div>
 
         {/* Form */}
         <div className="bg-white rounded-2xl shadow-sm border border-violet-100 p-8">
-          <h2 className="text-xl font-bold text-gray-900 mb-6">登录</h2>
+          <h2 className="text-xl font-bold text-gray-900 mb-6">Log in</h2>
 
           {/* Role selector */}
           <div className="mb-5">
-            <label className="block text-sm font-medium text-gray-700 mb-2">身份</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Role</label>
             <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
@@ -70,7 +67,7 @@ export default function LoginPage() {
                     : 'border-gray-200 text-gray-500 hover:border-gray-300'
                 }`}
               >
-                教师
+                Teacher
               </button>
               <button
                 type="button"
@@ -81,15 +78,15 @@ export default function LoginPage() {
                     : 'border-gray-200 text-gray-500 hover:border-gray-300'
                 }`}
               >
-                学生
+                Student
               </button>
             </div>
-            <p className="text-xs text-gray-400 mt-2">管理员账号由系统预设，使用管理员邮箱登录</p>
+            <p className="text-xs text-gray-400 mt-2">Admin accounts are preset by the system — log in with admin email</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">邮箱</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
               <input
                 type="email"
                 value={email}
@@ -99,13 +96,13 @@ export default function LoginPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">密码</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
               <input
                 type="password"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-100 outline-none transition-all text-gray-900"
-                placeholder="请输入密码"
+                placeholder="Enter your password"
               />
             </div>
             {error && <p className="text-sm text-red-500">{error}</p>}
@@ -114,16 +111,16 @@ export default function LoginPage() {
               disabled={loading}
               className="w-full btn-primary py-3 text-base"
             >
-              {loading ? '登录中...' : '登录'}
+              {loading ? 'Logging in...' : 'Log in'}
             </button>
           </form>
           <div className="mt-6 text-center text-sm text-gray-500">
-            还没有账号？
-            <Link to="/register" className="text-violet-600 font-medium hover:text-violet-700">立即注册</Link>
+            Don't have an account?
+            <Link to="/register" className="text-violet-600 font-medium hover:text-violet-700"> Sign up</Link>
           </div>
           <div className="mt-4 pt-4 border-t border-gray-100 text-center">
-            <button onClick={() => { login('演示用户', role); navigate('/') }} className="text-sm text-gray-400 hover:text-gray-600 transition-colors">
-              快速体验（跳过登录）
+            <button onClick={() => { login('Demo User', role); navigate('/') }} className="text-sm text-gray-400 hover:text-gray-600 transition-colors">
+              Quick demo (skip login)
             </button>
           </div>
         </div>

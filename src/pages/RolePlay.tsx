@@ -4,50 +4,50 @@ import { Scenario } from '@/providers/AuthProvider'
 const SCENARIOS: Scenario[] = [
   {
     id: '1',
-    title: '熟人边界问题',
-    tag: '身体边界',
-    description: '周末，你的一位叔叔来家里做客。他抱着你的时候，你感觉不太舒服。他当着很多人的面，说"叔叔就这么喜欢你"，然后捏了你的脸。',
+    title: 'Boundaries with Someone You Know',
+    tag: 'Body Boundaries',
+    description: 'On a weekend, your uncle comes to visit. When he hugs you, you feel uncomfortable. In front of many people, he says "Uncle just loves you this much" and pinches your cheek.',
     choices: [
-      { text: '忍着不说，因为是长辈', feedback: '这不是正确的做法。你有权保护自己的感受，即使是长辈也要尊重你的边界。', correct: false },
-      { text: '明确告诉叔叔"我不喜欢这样"', feedback: '很好！你可以用温和但坚定的方式表达自己的不舒服。记住，你的身体你做主。', correct: true },
-      { text: '事后告诉爸爸妈妈', feedback: '很好的选择！如果当时不方便说，事后告诉信任的大人也是正确的做法。', correct: true },
-      { text: '假装没事，以后躲着他', feedback: '躲避不能解决问题。长期压抑感受可能会影响你的心理健康。建议找一个安全的机会表达你的感受。', correct: false },
+      { text: 'Suffer in silence because he\'s an elder', feedback: 'This is not the right approach. You have the right to protect your feelings, and even elders must respect your boundaries.', correct: false },
+      { text: 'Clearly tell your uncle "I don\'t like this"', feedback: 'Well done! You can express your discomfort in a gentle but firm way. Remember, your body, your rules.', correct: true },
+      { text: 'Tell your mom and dad later', feedback: 'Great choice! If it\'s not convenient to say it then, telling a trusted adult afterward is the right thing to do.', correct: true },
+      { text: 'Pretend it\'s fine and avoid him from now on', feedback: 'Avoidance doesn\'t solve the problem. Suppressing your feelings for a long time may affect your mental health. Find a safe moment to express how you feel.', correct: false },
     ],
   },
   {
     id: '2',
-    title: '网络社交安全',
-    tag: '网络安全',
-    description: '你在网上认识了一个比你大5岁的网友，你们聊得很投缘。有一天他问你："你能发一张你的照片给我看看吗？"并说"这只是我们之间的秘密"。',
+    title: 'Online Social Safety',
+    tag: 'Online Safety',
+    description: 'You met someone online who is 5 years older than you, and you get along great. One day they ask: "Can you send me a photo of yourself?" and say "This is just between us."',
     choices: [
-      { text: '发一张普通的照片给他', feedback: '即使是普通照片也不应该发给网友。网络上的信息可能被保存、传播，存在风险。', correct: false },
-      { text: '拒绝他，并告诉父母或老师', feedback: '完全正确！任何让你不舒服的要求都要拒绝，并告诉信任的大人。记住：真正的网络安全是保护自己的隐私。', correct: true },
-      { text: '不回复，直接拉黑', feedback: '这也是一个安全的做法。但如果你感到困扰或害怕，一定要告诉大人。', correct: true },
-      { text: '答应他，说"那你要给我发什么？"', feedback: '这样做会让你陷入危险境地。不要进行任何形式的隐私交换，这是对方的操控手段。', correct: false },
+      { text: 'Send a regular (non-private) photo', feedback: 'Even a normal photo shouldn\'t be sent to someone you only know online. Information shared online can be saved and spread, posing risks.', correct: false },
+      { text: 'Refuse and tell your parents or teacher', feedback: 'Absolutely correct! Refuse any request that makes you uncomfortable, and tell a trusted adult. True online safety means protecting your privacy.', correct: true },
+      { text: 'Don\'t reply and block them directly', feedback: 'This is also a safe approach. But if you feel distressed or scared, be sure to tell an adult.', correct: true },
+      { text: 'Agree and ask "What will you send me?"', feedback: 'This puts you in danger. Never exchange private information — it\'s a manipulation tactic.', correct: false },
     ],
   },
   {
     id: '3',
-    title: 'Consent（性同意）',
-    tag: '同意',
-    description: '你和一个你喜欢的人在一起，对方想牵你的手并靠近你。但你还没有准备好。',
+    title: 'Consent',
+    tag: 'Consent',
+    description: 'You\'re with someone you like, and they want to hold your hand and get closer. But you\'re not ready yet.',
     choices: [
-      { text: '顺从对方的意愿', feedback: '这不是必须的。你的感受最重要，你有权利在任何时候说"不"或"还没准备好"。', correct: false },
-      { text: '告诉对方"我还不想这样，但我们还是可以朋友"', feedback: '很好的表达！清晰地沟通你的边界，同时表达对关系的重视。', correct: true },
-      { text: '不说话，但身体往后退', feedback: '身体语言是有效的信号，但有时候对方可能没有注意到。最好加上语言表达会更清晰。', correct: false },
-      { text: '先假装同意，之后再想办法', feedback: '这会让你非常不舒服。同意应该是自愿且清晰的，不要勉强自己。', correct: false },
+      { text: 'Go along with what they want', feedback: 'You don\'t have to. Your feelings matter most — you have the right to say "no" or "not yet" at any time.', correct: false },
+      { text: 'Tell them "I\'m not ready for this, but we can still be friends"', feedback: 'Great communication! Clearly express your boundaries while showing you value the relationship.', correct: true },
+      { text: 'Say nothing but lean back', feedback: 'Body language is an effective signal, but sometimes the other person may not notice it. It\'s best to add verbal communication for clarity.', correct: false },
+      { text: 'Pretend to agree and figure it out later', feedback: 'This will make you very uncomfortable. Consent should be voluntary and clear — don\'t force yourself.', correct: false },
     ],
   },
   {
     id: '4',
-    title: '公共场所的骚扰',
-    tag: '安全',
-    description: '在地铁上，有人一直盯着你看，并故意靠近你。你感觉很不舒服。',
+    title: 'Harassment in Public',
+    tag: 'Safety',
+    description: 'On the subway, someone keeps staring at you and deliberately getting close. You feel very uncomfortable.',
     choices: [
-      { text: '假装没看见，忍一忍就过去了', feedback: '忍耐不是解决之道。你有权利在公共场所感到安全。', correct: false },
-      { text: '大声呵斥对方', feedback: '大声表达可以吓退一些人，但也要评估现场安全情况，优先保护自己。', correct: true },
-      { text: '移动到有其他人的地方，或向工作人员求助', feedback: '非常好的做法！寻找安全区域和求助是保护自己最有效的方式。', correct: true },
-      { text: '记录下来，事后报警', feedback: '如果有证据且情况严重，报警是正确的选择。但首先要确保当下的安全。', correct: true },
+      { text: 'Pretend not to notice and endure it', feedback: 'Endurance is not the solution. You have the right to feel safe in public places.', correct: false },
+      { text: 'Shout at them loudly', feedback: 'Speaking up can deter some people, but also assess the safety of the situation and prioritize your own safety.', correct: true },
+      { text: 'Move to a place with more people, or ask staff for help', feedback: 'An excellent approach! Finding a safe area and seeking help is the most effective way to protect yourself.', correct: true },
+      { text: 'Record evidence and report to the police later', feedback: 'If you have evidence and the situation is serious, reporting is the right choice. But first ensure your immediate safety.', correct: true },
     ],
   },
 ]
@@ -56,10 +56,10 @@ export default function RolePlay() {
   const [view, setView] = useState<{ mode: 'list' | 'play'; scenario: Scenario | null; choiceIdx: number; done: boolean }>({
     mode: 'list', scenario: null, choiceIdx: -1, done: false,
   })
-  const [selectedTag, setSelectedTag] = useState('全部')
+  const [selectedTag, setSelectedTag] = useState('All')
 
-  const tags = ['全部', ...Array.from(new Set(SCENARIOS.map(s => s.tag)))]
-  const filtered = selectedTag === '全部' ? SCENARIOS : SCENARIOS.filter(s => s.tag === selectedTag)
+  const tags = ['All', ...Array.from(new Set(SCENARIOS.map(s => s.tag)))]
+  const filtered = selectedTag === 'All' ? SCENARIOS : SCENARIOS.filter(s => s.tag === selectedTag)
 
   if (view.mode === 'play' && view.scenario) {
     const s = view.scenario
@@ -70,7 +70,7 @@ export default function RolePlay() {
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M19 12H5M12 19l-7-7 7-7" />
           </svg>
-          返回情景列表
+          Back to scenarios
         </button>
         <div className="card mb-6">
           <div className="flex items-center gap-2 mb-3">
@@ -110,7 +110,7 @@ export default function RolePlay() {
         {view.done && (
           <div className="mt-6 text-center">
             <button onClick={() => setView({ mode: 'list', scenario: null, choiceIdx: -1, done: false })} className="btn-primary">
-              回到情景列表
+              Back to scenario list
             </button>
           </div>
         )}
@@ -145,9 +145,9 @@ export default function RolePlay() {
               </svg>
             </div>
             <div className="mt-3 flex items-center gap-2 text-sm text-gray-400">
-              <span>{s.choices.length} 个选择</span>
+              <span>{s.choices.length} choices</span>
               <span>•</span>
-              <span>角色扮演</span>
+              <span>Role play</span>
             </div>
           </button>
         ))}
