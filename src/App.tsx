@@ -6,10 +6,14 @@ import RolePlay from './pages/RolePlay'
 import MiniGames from './pages/MiniGames'
 import AnonymousBox from './pages/AnonymousBox'
 import FAQ from './pages/FAQ'
+import LoginPage from './pages/LoginPage'
+import RegisterPage from './pages/RegisterPage'
 
 export default function App() {
   return (
     <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
       <Route path="/" element={<Layout />}>
         <Route index element={<HomePage />} />
         <Route path="course" element={<CourseDesign />} />

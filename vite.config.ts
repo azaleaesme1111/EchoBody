@@ -5,7 +5,6 @@ import path from 'path'
 export default defineConfig({
   base: '/EchoBody/',
   plugins: [react()],
-  base: '/EchoBody/',
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
