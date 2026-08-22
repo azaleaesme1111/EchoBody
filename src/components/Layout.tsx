@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useLocation, Outlet, useNavigate } from 'react-router-dom'
 import { MODULES } from '@/constants/modules'
 import { useAuth } from '@/providers/AuthProvider'
+import Logo from '@/components/Logo'
 
 export default function Layout() {
   const location = useLocation()
@@ -21,12 +22,8 @@ export default function Layout() {
       {/* Header */}
       <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-lg border-b border-violet-100">
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
-          <Link to="." className="flex items-center gap-3 font-bold text-xl text-violet-700">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" />
-              <path d="M12 6v6l4 2" />
-            </svg>
-            <span>EchoBody</span>
+          <Link to="." className="flex items-center">
+            <Logo size="sm" />
           </Link>
           <div className="flex items-center gap-3">
             {user ? (

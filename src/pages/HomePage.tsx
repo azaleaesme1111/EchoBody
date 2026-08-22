@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { MODULES } from '@/constants/modules'
 import { useAuth } from '@/providers/AuthProvider'
+import Logo from '@/components/Logo'
 
 export default function HomePage() {
   const { user } = useAuth()
@@ -9,11 +10,10 @@ export default function HomePage() {
     <div className="page-container">
       {/* Hero */}
       <div className="text-center py-12">
-        <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-violet-600 text-white mb-6">
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" />
-            <path d="M12 6v6l4 2" />
-          </svg>
+        <div className="mb-0">
+          <div className="inline-flex items-center justify-center bg-purple-50 p-6 rounded-2xl">
+            <Logo size="lg" showText={false} />
+          </div>
         </div>
         <h1 className="text-5xl font-bold text-gray-900 mb-4">EchoBody</h1>
         <p className="text-gray-500 max-w-lg mx-auto">An interactive teaching platform to help educators design and deliver high-quality puberty and consent education courses</p>

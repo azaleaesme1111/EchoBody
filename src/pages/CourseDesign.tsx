@@ -76,9 +76,9 @@ const DISCUSSION_QUESTIONS: { id: string; topic: string; question: string; age: 
 
 // ── PRD: Parameter Options ──────────────────────────────────────────────────
 const GENDER_OPTIONS = [
-  { value: 'Co-ed / Inclusive', label: 'Co-ed' },
-  { value: 'Girls only', label: 'Girls' },
-  { value: 'Boys only', label: 'Boys' },
+  { value: 'Co-ed', title: 'Co-ed', subtitle: 'Inclusive & interactive discussion for mixed groups' },
+  { value: 'Girls-only', title: 'Girls-only', subtitle: 'Puberty, body development, girls\' safety & autonomy' },
+  { value: 'Boys-only', title: 'Boys-only', subtitle: 'Puberty, respecting boundaries, responsibility & empathy' },
 ]
 
 const SETTING_OPTIONS = [
@@ -112,17 +112,43 @@ const TOPIC_EXAMPLES = [
   'Digital Footprint and Privacy',
 ]
 
+// ── Markdown sanitize helper ─────────────────────────────────────────────────
+function sanitizeMarkdown(text: string): string {
+  let s = text
+  // 1. Fix unclosed ** bold: if odd number of ** on a line, remove the trailing one
+  s = s.split('\n').map(line => {
+    const count = (line.match(/\*\*/g) || []).length
+    if (count % 2 !== 0) {
+      // Remove the last standalone ** that has no pair
+      const lastIdx = line.lastIndexOf('**')
+      if (lastIdx !== -1) {
+        line = line.slice(0, lastIdx) + line.slice(lastIdx + 2)
+      }
+    }
+    return line
+  }).join('\n')
+  // 2. Convert bare asterisk bullets (* item) to proper markdown dashes (- item)
+  s = s.replace(/^(\*)\s+/gm, '- ')
+  // 3. Ensure ## headings have a blank line before them (for proper paragraph breaks)
+  s = s.replace(new RegExp('([^\\n])\\n(#{1,3}\\s)', 'g'), '$1\\n\\n$2')
+  // 4. Normalize multiple consecutive blank lines to max 2
+  s = s.replace(/\n{3,}/g, '\n\n')
+  // 5. Strip leading/trailing whitespace
+  return s.trim()
+}
+
 // ── Simple Markdown → JSX renderer ──────────────────────────────────────────
 function renderMarkdown(text: string) {
+  const clean = sanitizeMarkdown(text)
   const sections: { title: string; content: string }[] = []
-  const parts = text.split(/^## /m)
+  const parts = clean.split(/^## /m)
 
   for (const part of parts) {
     const trimmed = part.trim()
     if (!trimmed) continue
     const nlIdx = trimmed.indexOf('\n')
     if (nlIdx === -1) {
-      sections.push({ title: trimmed, content: '' })
+      sections.push({ title: trimmed.replace(/\*\*/g, ''), content: '' })
     } else {
       sections.push({
         title: trimmed.slice(0, nlIdx).replace(/\*\*/g, ''),
@@ -132,7 +158,7 @@ function renderMarkdown(text: string) {
   }
 
   if (sections.length === 0) {
-    return <p className="text-sm text-gray-700 whitespace-pre-wrap">{text}</p>
+    return <p className="text-sm text-gray-700 whitespace-pre-wrap">{clean}</p>
   }
 
   return (
@@ -145,12 +171,13 @@ function renderMarkdown(text: string) {
           </h4>
           <div className="text-sm text-gray-700 leading-relaxed">
             {sec.content.split('\n').map((line, j) => {
-              const bold = line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+              // Strip any remaining ** bold markers for safe innerHTML
+              const safe = line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
               if (line.startsWith('- ') || line.startsWith('* ')) {
                 return (
                   <div key={j} className="flex items-start gap-2 ml-2 my-0.5">
                     <span className="w-1 h-1 rounded-full bg-violet-400 mt-2 flex-shrink-0" />
-                    <span dangerouslySetInnerHTML={{ __html: bold.slice(2) }} />
+                    <span dangerouslySetInnerHTML={{ __html: safe.slice(2) }} />
                   </div>
                 )
               }
@@ -163,10 +190,10 @@ function renderMarkdown(text: string) {
                 )
               }
               if (line.startsWith('### ')) {
-                return <p key={j} className="font-semibold text-gray-800 mt-3 mb-1" dangerouslySetInnerHTML={{ __html: bold.slice(4) }} />
+                return <p key={j} className="font-semibold text-gray-800 mt-3 mb-1" dangerouslySetInnerHTML={{ __html: safe.slice(4) }} />
               }
               if (line.trim() === '') return <div key={j} className="h-2" />
-              return <p key={j} className="my-1" dangerouslySetInnerHTML={{ __html: bold }} />
+              return <p key={j} className="my-1" dangerouslySetInnerHTML={{ __html: safe }} />
             })}
           </div>
         </div>
@@ -189,9 +216,9 @@ export default function CourseDesign() {
   const [aiGrade, setAiGrade] = useState('')
   const [aiDuration, setAiDuration] = useState('')
   const [aiGender, setAiGender] = useState(GENDER_OPTIONS[0].value)
-  const [aiSetting, setAiSetting] = useState(SETTING_OPTIONS[0].value)
-  const [aiClassSize, setAiClassSize] = useState(CLASS_SIZE_OPTIONS[1].value)
-  const [aiStyle, setAiStyle] = useState(STYLE_OPTIONS[0].value)
+  const [aiSetting, setAiSetting] = useState('')
+  const [aiClassSize, setAiClassSize] = useState('')
+  const [aiStyle, setAiStyle] = useState('')
   const [showAdvanced, setShowAdvanced] = useState(false)
 
   // Refine chat state
@@ -213,9 +240,14 @@ export default function CourseDesign() {
   const callApi = async (body: Record<string, any>) => {
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
     const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+    console.log('[callApi] Requesting:', body.action, '| URL:', supabaseUrl)
     const response = await fetch(`${supabaseUrl}/functions/v1/ai-lesson`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', apikey: supabaseAnonKey },
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': supabaseAnonKey,
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+      },
       body: JSON.stringify(body),
     })
     if (!response.ok) {
@@ -243,16 +275,19 @@ export default function CourseDesign() {
       setSlidesError('')
 
       try {
-        const data = await callApi({
+        const payload: Record<string, any> = {
           action: 'generate',
           topic: aiTopic.trim(),
           gradeOrAge: aiGrade,
           lessonDuration: aiDuration,
           genderFocus: aiGender,
-          schoolSetting: aiSetting,
-          classSize: aiClassSize,
-          teachingStyle: aiStyle,
-        })
+        }
+        // Only include advanced settings if user actively selected non-empty values
+        if (aiSetting) payload.schoolSetting = aiSetting
+        if (aiClassSize) payload.classSize = aiClassSize
+        if (aiStyle) payload.teachingStyle = aiStyle
+        console.log('[CourseDesign] API Payload:', JSON.stringify(payload, null, 2))
+        const data = await callApi(payload)
         setAiResult(data.content || 'No response generated')
       } catch (e: any) {
         setAiError(e.message || 'Network error, please try again')
@@ -271,7 +306,10 @@ export default function CourseDesign() {
     setRefineLoading(true)
 
     try {
-      const data = await callApi({ action: 'refine', currentPlan: aiResult, feedback })
+      const refinePayload = { action: 'refine', currentPlan: aiResult, feedback }
+      console.log('[Refine] Request sent:', JSON.stringify({ action: 'refine', feedbackLength: feedback.length, planLength: aiResult.length }, null, 2))
+      const data = await callApi(refinePayload)
+      console.log('[Refine] Response received:', data.content ? `${data.content.length} chars` : 'EMPTY')
       setRefineMessages(prev => [...prev, { role: 'assistant', content: data.content }])
       setAiResult(data.content)
     } catch (e: any) {
@@ -282,32 +320,37 @@ export default function CourseDesign() {
     }
   }
 
-  // ── Grade Level Inference (decoupled from color theme) ─────────────────
-  const inferGradeLevel = (): 'low' | 'high' => {
+  // ── Grade Level Inference (3-tier: low/mid/high, decoupled from color theme) ─
+  const inferGradeLevel = (): 'low' | 'mid' | 'high' => {
     const g = aiGrade.toLowerCase().trim()
 
     // Extract explicit number: "grade 4", "grade4", "4th grade", "4th", "4-6"
     const numMatch = g.match(/(\d+)(?:\s*[-–]\s*(\d+))?/)
     if (numMatch) {
       const first = parseInt(numMatch[1])
-      if (first >= 1 && first <= 6) return 'low'
-      if (first >= 7 && first <= 12) return 'high'
+      const last = numMatch[2] ? parseInt(numMatch[2]) : first
+      const avg = (first + last) / 2
+      if (avg >= 1 && avg <= 5) return 'low'
+      if (avg >= 6 && avg <= 8) return 'mid'
+      if (avg >= 9) return 'high'
     }
 
     // Keyword matching
-    if (/elementary|primary|kids?|young|lower/i.test(g)) return 'low'
-    if (/middle|high|secondary|teen|adolescen|adult/i.test(g)) return 'high'
+    if (/elementary|primary|kids?|young|lower\sgrade/i.test(g)) return 'low'
+    if (/middle|junior|intermediate|6th|7th|8th/i.test(g)) return 'mid'
+    if (/high|secondary|senior|teen|adolescen|adult/i.test(g)) return 'high'
 
     // Age range: "8-10", "10-12 years", "15-18"
     const ageMatch = g.match(/(\d+)\s*[-–]\s*(\d+)\s*(year|yr|y\.o)/i)
     if (ageMatch) {
       const avg = (parseInt(ageMatch[1]) + parseInt(ageMatch[2])) / 2
-      if (avg <= 11) return 'low'
+      if (avg <= 10) return 'low'
+      if (avg <= 13) return 'mid'
       return 'high'
     }
 
     // Default
-    return 'high'
+    return 'mid'
   }
 
   // Smart default theme based on grade context
@@ -327,7 +370,8 @@ export default function CourseDesign() {
     const theme = inferDefaultTheme()
     const typo = TYPOGRAPHY[level]
 
-    console.log(`[PPT Generator] Parsed Grade Level: ${level === 'low' ? 'Low' : 'High'} (input: "${aiGrade}")`)
+    const levelNames = { low: 'Low (Grade 3-5)', mid: 'Mid (Grade 6-8)', high: 'High (Grade 9-12)' }
+    console.log(`[PPT Generator] Parsed Grade Level: ${levelNames[level]} (input: "${aiGrade}")`)
     console.log(`[PPT Generator] Theme: ${theme.name} | Typography: ${level} (${typo.titleFont}/${typo.bodyFont})`)
 
     setCurrentTheme(theme)
@@ -365,6 +409,27 @@ export default function CourseDesign() {
             placeholder="e.g. Grade 5, 10-12 years old..."
             className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-100 outline-none text-gray-900"
           />
+        </div>
+
+        {/* Target Gender */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-2">Target Gender</label>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            {GENDER_OPTIONS.map(g => (
+              <button
+                key={g.value} type="button"
+                onClick={() => setAiGender(g.value)}
+                className={`px-4 py-3 rounded-xl border text-left transition-all ${
+                  aiGender === g.value
+                    ? 'border-violet-500 bg-violet-50 ring-2 ring-violet-100'
+                    : 'border-gray-200 hover:border-gray-300 bg-white'
+                }`}
+              >
+                <div className="text-sm font-bold text-gray-900">{g.title}</div>
+                <div className="text-xs text-gray-500 mt-0.5">{g.subtitle}</div>
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Topic */}
@@ -410,21 +475,16 @@ export default function CourseDesign() {
               <path d="M9 18l6-6-6-6" />
             </svg>
             Advanced Settings
+            {showAdvanced && <span className="text-xs text-violet-400 ml-1">(optional)</span>}
           </button>
 
           {showAdvanced && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pl-5">
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1.5">Gender Focus</label>
-                <select value={aiGender} onChange={e => setAiGender(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl border border-gray-200 focus:border-violet-500 outline-none text-sm text-gray-900 bg-white">
-                  {GENDER_OPTIONS.map(g => <option key={g.value} value={g.value}>{g.label}</option>)}
-                </select>
-              </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pl-5">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1.5">School Setting</label>
                 <select value={aiSetting} onChange={e => setAiSetting(e.target.value)}
                   className="w-full px-3 py-2.5 rounded-xl border border-gray-200 focus:border-violet-500 outline-none text-sm text-gray-900 bg-white">
+                  <option value="" disabled>Select setting...</option>
                   {SETTING_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                 </select>
               </div>
@@ -432,6 +492,7 @@ export default function CourseDesign() {
                 <label className="block text-xs font-medium text-gray-600 mb-1.5">Class Size</label>
                 <select value={aiClassSize} onChange={e => setAiClassSize(e.target.value)}
                   className="w-full px-3 py-2.5 rounded-xl border border-gray-200 focus:border-violet-500 outline-none text-sm text-gray-900 bg-white">
+                  <option value="" disabled>Select class size...</option>
                   {CLASS_SIZE_OPTIONS.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
                 </select>
               </div>
@@ -439,6 +500,7 @@ export default function CourseDesign() {
                 <label className="block text-xs font-medium text-gray-600 mb-1.5">Teaching Style</label>
                 <select value={aiStyle} onChange={e => setAiStyle(e.target.value)}
                   className="w-full px-3 py-2.5 rounded-xl border border-gray-200 focus:border-violet-500 outline-none text-sm text-gray-900 bg-white">
+                  <option value="" disabled>Select teaching style...</option>
                   {STYLE_OPTIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                 </select>
               </div>
@@ -567,7 +629,7 @@ export default function CourseDesign() {
                   </svg>
                   Generating slides...
                 </div>
-                <span className="text-xs text-violet-400">AI matched: {inferDefaultTheme().name} · {inferGradeLevel() === 'low' ? '🎨 Playful' : '📐 Clean'} layout</span>
+                <span className="text-xs text-violet-400">AI matched: {inferDefaultTheme().name} · {(() => { const l = inferGradeLevel(); return l === 'low' ? '🎨 Playful' : l === 'mid' ? '📐 Standard' : '📐 Editorial' })()} layout</span>
               </div>
             )}
             {slidesError && <p className="mt-2 text-sm text-red-500">{slidesError}</p>}
