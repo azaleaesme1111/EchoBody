@@ -17,7 +17,10 @@ import {
   generateSuggestions,
   type NluParseResult,
 } from '@/services/roleplay/llmService'
-import { MAX_ROUNDS, VICTORY_ASSERTIVENESS_THRESHOLD, DEFEAT_RISK_THRESHOLD } from '@/types/roleplay'
+import { VICTORY_ASSERTIVENESS_THRESHOLD, DEFEAT_RISK_THRESHOLD } from '@/types/roleplay'
+// 在顶部相应的常量或类型导入处加上 MAX_ROUNDS
+// 声明单局最大回合数（通常为 10 或 15，按你的游戏规则调整）
+const MAX_ROUNDS = 10
 
 // ═══════════════════════════════════════════════════════════
 // 组件：RolePlay
@@ -25,8 +28,7 @@ import { MAX_ROUNDS, VICTORY_ASSERTIVENESS_THRESHOLD, DEFEAT_RISK_THRESHOLD } fr
 // 改动：
 //   1. Win/Lose → 统一 Target（简洁清晰）
 //   2. 用户输入立即发出，不等 NPC 加载完
-//   3. NPC 回复打字特效
-//   4. Suggested responses 每轮 2 条，由 AI 实时生成
+//   3. AI 建议固定两条，由 AI 实时生成
 // ═══════════════════════════════════════════════════════════
 
 type ViewMode = 'list' | 'playing' | 'result'
@@ -48,85 +50,21 @@ export default function RolePlay() {
   const [customInput, setCustomInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
+  // ── 追踪用户消息是否已立即显示（先发再 think） ──────────
+  const pendingUserMsgRef = useRef<string | null>(null)
+
   // ── AI 建议 ─────────────────────────────────────────────
   const [suggestions, setSuggestions] = useState<string[]>([])
   const [isGeneratingSuggestions, setIsGeneratingSuggestions] = useState(false)
 
-  // ── 打字特效 ────────────────────────────────────────────
-  const [displayedMessages, setDisplayedMessages] = useState<Map<number, string>>(new Map())
-  const typingRefs = useRef<Map<number, NodeJS.Timeout>>(new Map())
-
   // ── 筛选 ────────────────────────────────────────────────
   const [selectedTag, setSelectedTag] = useState('All')
 
-  // ── 消息滚动 refs ───────────────────────────────────────
+  // ── 消息滚动 ref ───────────────────────────────────────
+
+  // ── 消息滚动 ref ───────────────────────────────────────
   const chatEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
-
-  // ── 自动滚动到底部 ──────────────────────────────────────
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [fsmState?.messages, displayedMessages])
-
-  // ── 聚焦输入框 ──────────────────────────────────────────
-  useEffect(() => {
-    if (viewMode === 'playing' && !isLoading) {
-      inputRef.current?.focus()
-    }
-  }, [viewMode, isLoading])
-
-  // ── 打字特效清理 ────────────────────────────────────────
-  useEffect(() => {
-    return () => {
-      typingRefs.current.forEach(t => clearTimeout(t))
-    }
-  }, [])
-
-  // ── 用于追踪已触发打字特效的消息索引，避免 useEffect 循环 ────
-  const typedMsgIndicesRef = useRef<Set<number>>(new Set())
-
-  // ── 为每条 NPC 消息启动打字特效 ────────────────────────
-  useEffect(() => {
-    if (!fsmState) return
-    const msgCount = fsmState.messages.length
-    const idx = msgCount - 1
-    // 只在新消息加入时触发，不依赖 displayedMessages 状态变化
-    if (idx <= typedMsgIndicesRef.current.size) return
-    if (displayedMessages.has(idx)) {
-      typedMsgIndicesRef.current.add(idx)
-      return
-    }
-
-    const lastMsg = fsmState.messages[idx]
-    if (!lastMsg || lastMsg.sender !== 'npc' || lastMsg.content.length === 0) return
-
-    const fullText = lastMsg.content
-    let current = ''
-    let i = 0
-
-    const typeNext = () => {
-      if (i >= fullText.length) {
-        setDisplayedMessages(prev => {
-          const next = new Map(prev)
-          next.set(idx, fullText)
-          return next
-        })
-        typedMsgIndicesRef.current.add(idx)
-        return
-      }
-      current += fullText[i]
-      i++
-      setDisplayedMessages(prev => {
-        const next = new Map(prev)
-        next.set(idx, current)
-        return next
-      })
-      typingRefs.current.set(idx, setTimeout(typeNext, 18))
-    }
-
-    typingRefs.current.set(idx, setTimeout(typeNext, 100))
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fsmState?.messages])
 
   // ── 生成 AI 建议 ────────────────────────────────────────
   // 使用 ref 持有稳定引用，避免 useCallback 依赖 state setter 导致循环
@@ -144,7 +82,8 @@ export default function RolePlay() {
         lastUserMsg.content,
         state.round,
       )
-      setSuggestions(result.suggestions)
+      // 固定返回 2 条
+      setSuggestions(result.suggestions.slice(0, 2))
     } catch {
       setSuggestions([])
     } finally {
@@ -152,12 +91,16 @@ export default function RolePlay() {
     }
   }
 
-  // 当新 NPC 消息出现时，生成建议
+  // 当新 NPC 消息出现时，生成建议（固定返回 2 条）
   useEffect(() => {
     if (!fsmState || !selectedScenario) return
     const lastMsg = fsmState.messages[fsmState.messages.length - 1]
     if (lastMsg?.sender !== 'npc') return
-    fetchSuggestionsRef.current?.(fsmState, selectedScenario)
+    // 延迟一小段时间确保用户消息已渲染后再触发 suggestion 生成
+    const timer = setTimeout(() => {
+      fetchSuggestionsRef.current?.(fsmState, selectedScenario)
+    }, 300)
+    return () => clearTimeout(timer)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fsmState?.messages.length, selectedScenario])
 
@@ -181,6 +124,9 @@ export default function RolePlay() {
   // ════════════════════════════════════════════════════════
   // 开始游戏
   // ════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
+  // 开始游戏
+  // ════════════════════════════════════════════════════════
   const startGame = useCallback((scenario: ScenarioConfig) => {
     if (!requireAuth()) return
     const initialState = createInitialState(scenario)
@@ -189,11 +135,9 @@ export default function RolePlay() {
     setViewMode('playing')
     setCustomInput('')
     setSuggestions([])
-    setDisplayedMessages(new Map())
   }, [requireAuth])
-
   // ════════════════════════════════════════════════════════
-  // 发送用户输入（立即发出，不等 NPC）
+  // 发送用户输入（先发用户消息，再显示 thinking，最后处理 AI 响应）
   // ════════════════════════════════════════════════════════
   const sendInput = useCallback(async () => {
     if (!fsmState || !selectedScenario || isLoading) return
@@ -203,6 +147,20 @@ export default function RolePlay() {
 
     setIsLoading(true)
     setSuggestions([])
+
+    // 第一步：立即将用户消息加入消息列表（先发）
+    const userMessage: import('@/types/roleplay').ChatMessage = {
+      sender: 'user',
+      content: userInput,
+      timestamp: Date.now(),
+    }
+    pendingUserMsgRef.current = userInput
+
+    setFsmState(prev => prev ? { ...prev, messages: [...prev.messages, userMessage] } : prev)
+    setCustomInput('')
+
+    // 第二步：等待一帧让 UI 渲染用户消息后再显示 thinking
+    await new Promise(r => setTimeout(r, 50))
 
     try {
       // 第一层隔离：NLU 意图解析
@@ -218,7 +176,7 @@ export default function RolePlay() {
       }
 
       // 第二层隔离：FSM 状态门控
-      let newMessages = [...fsmState.messages]
+      let newMessages = [...fsmState.messages, userMessage]
       let newAssertiveness = fsmState.assertiveness
       let newRisk = fsmState.risk
       let newStateNode = fsmState.currentNodeId
@@ -246,6 +204,8 @@ export default function RolePlay() {
         newStateNode = newState.currentNodeId
       }
 
+      pendingUserMsgRef.current = null
+
       setFsmState({
         ...fsmState,
         messages: newMessages,
@@ -254,8 +214,6 @@ export default function RolePlay() {
         currentNodeId: newStateNode,
         gameOver: false,
       })
-
-      setCustomInput('')
     } finally {
       setIsLoading(false)
     }
@@ -275,13 +233,6 @@ export default function RolePlay() {
   if (viewMode === 'list') {
     return (
       <div>
-        <div className="mb-6 p-4 bg-pink-50 rounded-xl border border-pink-100">
-          <h2 className="font-bold text-gray-900 text-lg mb-1">🎭 Dialogue Sandbox</h2>
-          <p className="text-sm text-gray-600">
-            Choose a scenario and practice setting boundaries. Your choices shape the outcome — stay firm, stay safe.
-          </p>
-        </div>
-
         <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
           {tags.map(t => (
             <button
@@ -353,17 +304,6 @@ export default function RolePlay() {
             {isVictory ? 'MISSION ACCOMPLISHED' : 'MISSION FAILED'}
           </h2>
           <p className="text-gray-600 text-sm mb-6">{fsmState.resultMessage}</p>
-
-          <div className="grid grid-cols-3 gap-4 mb-6">
-            <StatTile label="Rounds" value={`${fsmState.round - 1}/${MAX_ROUNDS}`} color={isVictory ? 'green' : 'red'} />
-            <StatTile label="Assertiveness" value={`${fsmState.assertiveness}`} color={isVictory ? 'green' : 'red'} />
-            <StatTile label="Risk Level" value={`${fsmState.risk}`} color={isVictory ? 'green' : 'red'} />
-          </div>
-
-          <div className="space-y-3 text-left max-w-xs mx-auto">
-            <NumberBar label="Assertiveness (A)" value={fsmState.assertiveness} target={VICTORY_ASSERTIVENESS_THRESHOLD} goal="victory" showValue />
-            <NumberBar label="Risk Level (R)" value={fsmState.risk} target={DEFEAT_RISK_THRESHOLD} goal="defeat" showValue />
-          </div>
         </div>
 
         <div className="card mb-6">
@@ -399,6 +339,12 @@ export default function RolePlay() {
               setViewMode('playing')
               setCustomInput('')
               setSuggestions([])
+              const initDisplayed = new Map<number, string>()
+              initial.messages.forEach((msg, i) => {
+                if (msg.sender === 'npc' && msg.content) initDisplayed.set(i, msg.content)
+              })
+              setDisplayedMessages(initDisplayed)
+              typedMsgIndicesRef.current = new Set(initDisplayed.keys())
             }}
             className="btn-secondary px-6"
           >
@@ -439,6 +385,9 @@ export default function RolePlay() {
             }`}>
               {selectedScenario.difficulty.charAt(0).toUpperCase() + selectedScenario.difficulty.slice(1)}
             </span>
+            <span className="text-gray-500 font-medium">
+              Round <span className="text-pink-600 font-bold">{fsmState.round}</span> / {MAX_ROUNDS}
+            </span>
           </div>
         </div>
 
@@ -453,23 +402,9 @@ export default function RolePlay() {
           </div>
         </div>
 
-        {/* ── 数值条（隐藏具体数值） ── */}
-        <div className="card mb-4 py-3 px-4 flex-shrink-0">
-          <div className="grid grid-cols-2 gap-4">
-            <NumberBar label="Assertiveness (A)" value={fsmState.assertiveness} target={VICTORY_ASSERTIVENESS_THRESHOLD} goal="victory" />
-            <NumberBar label="Risk Level (R)" value={fsmState.risk} target={DEFEAT_RISK_THRESHOLD} goal="defeat" />
-          </div>
-        </div>
-
         {/* ── 对话消息区 ── */}
         <div className="flex-1 overflow-y-auto space-y-3 mb-4 pr-1">
-          {fsmState.messages.map((msg: import('@/types/roleplay').ChatMessage, i: number) => {
-            // 打字特效：NPC 消息显示逐步构建的文本
-            const displayText = msg.sender === 'npc'
-              ? (displayedMessages.get(i) ?? '')
-              : msg.content
-
-            return (
+          {fsmState.messages.map((msg: import('@/types/roleplay').ChatMessage, i: number) => (
               <div key={i} className={`flex gap-2 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
                 {msg.sender !== 'user' && (
                   <div className="w-7 h-7 rounded-full bg-pink-100 flex items-center justify-center text-xs flex-shrink-0 mt-0.5">
@@ -483,7 +418,7 @@ export default function RolePlay() {
                     ? 'bg-gray-100 text-gray-500 italic text-xs rounded-xl'
                     : 'bg-white border border-gray-200 text-gray-700 rounded-bl-sm'
                 }`}>
-                  {displayText || (msg.sender === 'npc' ? <span className="animate-pulse">...</span> : '')}
+                  {msg.content}
                 </div>
                 {msg.sender === 'user' && (
                   <div className="w-7 h-7 rounded-full bg-violet-100 flex items-center justify-center text-xs flex-shrink-0 mt-0.5">
@@ -491,8 +426,7 @@ export default function RolePlay() {
                   </div>
                 )}
               </div>
-            )
-          })}
+          ))}
           {isLoading && (
             <div className="flex gap-2 justify-start">
               <div className="w-7 h-7 rounded-full bg-pink-100 flex items-center justify-center text-xs flex-shrink-0">
@@ -532,14 +466,14 @@ export default function RolePlay() {
               </button>
             </div>
 
-            {/* AI 建议回复（每轮 2 条，AI 实时生成） */}
+            {/* AI 建议回复（每轮固定 2 条，AI 实时生成） */}
             {isGeneratingSuggestions && (
               <div className="flex items-center gap-2 text-xs text-gray-400">
                 <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                 </svg>
-                Generating suggestions...
+                Generating 2 suggestions...
               </div>
             )}
             {suggestions.length > 0 && (
@@ -555,6 +489,12 @@ export default function RolePlay() {
                     {suggestion}
                   </button>
                 ))}
+              </div>
+            )}
+            {!isGeneratingSuggestions && suggestions.length === 0 && !isLoading && (
+              <div className="flex items-center gap-2 text-xs text-gray-400">
+                <span>💡</span>
+                <span>AI suggestions will appear after NPC responds</span>
               </div>
             )}
           </div>
@@ -621,18 +561,6 @@ function NumberBar({
           style={{ width: `${value}%` }}
         />
       </div>
-    </div>
-  )
-}
-
-// ═══════════════════════════════════════════════════════════
-// 子组件：统计卡片
-// ═══════════════════════════════════════════════════════════
-function StatTile({ label, value, color }: { label: string; value: string; color: 'green' | 'red' }) {
-  return (
-    <div className={`rounded-xl p-3 ${color === 'green' ? 'bg-green-50' : 'bg-red-50'}`}>
-      <div className={`text-xs font-medium mb-1 ${color === 'green' ? 'text-green-600' : 'text-red-600'}`}>{label}</div>
-      <div className={`text-2xl font-bold ${color === 'green' ? 'text-green-800' : 'text-red-800'}`}>{value}</div>
     </div>
   )
 }
