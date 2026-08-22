@@ -115,11 +115,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function fetchProfile(userId: string): Promise<User | null> {
     try {
       console.log('[Auth] Fetching profile for userId:', userId)
-      const { data, error } = await withTimeout(
-        supabase.from('profiles').select('id, name, role').eq('id', userId).single(),
-        8000,
-        'fetchProfile'
-      )
+      // const { data, error } = await withTimeout(
+      //   supabase.from('profiles').select('id, name, role').eq('id', userId).single(),
+      //   8000,
+      //   'fetchProfile'
+      // )
+      const { data, error } = await withTimeout<any>(
+        Promise.resolve(supabase.from('profiles').select('id, name, role').eq('id', userId).single()),
+        5000 // 👈 补上这个超时毫秒数参数
+      );
 
       if (error) {
         console.error('[Auth] Profile query error:', error.message, error.code)
