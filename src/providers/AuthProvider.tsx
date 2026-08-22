@@ -121,8 +121,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       //   'fetchProfile'
       // )
       const { data, error } = await withTimeout<any>(
-        Promise.resolve(supabase.from('profiles').select('id, name, role').eq('id', userId).single()),
-        5000 // 👈 补上这个超时毫秒数参数
+        // 👈 使用 ( ... as any ) 解决 TS 类型报错，同时保留原有的正确请求逻辑
+        supabase.from('profiles').select('id, name, role').eq('id', userId).single() as any,
+        5000,
+        'fetchProfile'
       );
 
       if (error) {
