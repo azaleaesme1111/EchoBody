@@ -25,7 +25,7 @@ export default function LoginPage() {
       setLoading(false)
       return
     }
-    navigate('/', { replace: true })
+    navigate('.', { replace: true })
   }
 
   return (
@@ -110,7 +110,7 @@ export default function LoginPage() {
             <Link to="/register" className="text-violet-600 font-medium hover:text-violet-700"> Sign up</Link>
           </div>
           <div className="mt-4 pt-4 border-t border-gray-100 text-center">
-            <button onClick={() => navigate('/')} className="text-sm text-gray-400 hover:text-gray-600 transition-colors">
+            <button onClick={() => navigate('.')} className="text-sm text-gray-400 hover:text-gray-600 transition-colors">
               Continue as guest
             </button>
           </div>

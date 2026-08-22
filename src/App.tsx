@@ -23,7 +23,7 @@ export default function App() {
           <Route path="games" element={<MiniGames />} />
           <Route path="questions" element={<AnonymousBox />} />
           <Route path="faq" element={<FAQ />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<Navigate to="." replace />} />
         </Route>
       </Route>
     </Routes>
