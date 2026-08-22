@@ -3,6 +3,43 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 const API_KEY = Deno.env.get('GOOGLE_API_KEY')
 const API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent'
 
+// ── PRD: System Prompt Template ──────────────────────────────────────────────
+const SYSTEM_PROMPT = `You are an expert health and sex education curriculum designer specializing in age-appropriate, inclusive, and engaging pedagogy for youth.
+
+Generate a comprehensive, step-by-step Lesson Plan Framework based on the parameters provided by the user.
+
+## Output Structure Requirements
+
+1. **Lesson Title & Overview**: A catchy title and a 2-sentence executive summary.
+
+2. **Learning Objectives**: 3 clear, measurable learning outcomes (using Bloom's Taxonomy verbs: Identify, Describe, Analyze, Evaluate, etc.).
+
+3. **Materials Needed**: Required visual aids, worksheets, or digital tools.
+
+4. **Lesson Timeline** (structured for the specified duration):
+   - **Hook / Warm-up** (10-15% of total time): Icebreaker or engagement trigger.
+   - **Core Concept & Discussion** (40-50% of total time): Key messaging tailored to the specified grade/age and school setting constraints.
+   - **Interactive Activity / Role-Play** (25-30% of total time): Hands-on group or individual activity aligning with the preferred teaching style.
+   - **Wrap-up & Reflection** (10-15% of total time): Key takeaways and exit ticket question.
+
+5. **Educator Sensitivity Notes**: Brief guidance on how to navigate potentially sensitive discussions around this topic for the specified age/gender focus.
+
+## Tone & Style
+Professional, empathetic, age-appropriate, culturally sensitive, and easy for teachers to execute immediately.
+
+Use Markdown formatting with clear ## headings for each section.`
+
+// ── Request body type ────────────────────────────────────────────────────────
+interface LessonRequest {
+  topic: string
+  gradeOrAge: string
+  lessonDuration: string
+  genderFocus?: string
+  schoolSetting?: string
+  classSize?: string
+  teachingStyle?: string
+}
+
 serve(async (req) => {
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -21,57 +58,43 @@ serve(async (req) => {
     )
   }
 
-  let body: { topic: string; ageGroup: string }
+  let body: LessonRequest
   try {
     body = await req.json()
   } catch {
     return new Response(
-      JSON.stringify({ error: 'Invalid request body. Expected { topic, ageGroup }' }),
+      JSON.stringify({ error: 'Invalid request body' }),
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
 
-  const { topic, ageGroup } = body
+  const {
+    topic,
+    gradeOrAge,
+    lessonDuration,
+    genderFocus = 'Co-ed / Inclusive',
+    schoolSetting = 'Standard Public School',
+    classSize = 'Standard Class (20-30)',
+    teachingStyle = 'Balanced (Discussion & Activity)',
+  } = body
 
-  if (!topic?.trim() || !ageGroup) {
+  if (!topic?.trim() || !gradeOrAge || !lessonDuration) {
     return new Response(
-      JSON.stringify({ error: 'topic and ageGroup are required' }),
+      JSON.stringify({ error: 'topic, gradeOrAge, and lessonDuration are required' }),
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
 
-  const prompt = `Design a sex ed lesson plan for "${topic.trim()}" (age: ${ageGroup}) in English.
+  // ── Build user message from parameters ───────────────────────────────────
+  const userMessage = `Please generate a lesson plan with the following parameters:
 
-## Topic
-[topic]
-
-## Target Age Group
-[age group]
-
-## Learning Objectives
-1. [obj1]
-2. [obj2]
-3. [obj3]
-
-## Materials Needed
-- [mat1]
-- [mat2]
-- [mat3]
-
-## Lesson Flow
-### 1. Introduction (5 min)
-[activity]
-### 2. Core Teaching (15 min)
-[content]
-### 3. Interactive Activity (15 min)
-[activity]
-### 4. Discussion (10 min)
-[discussion]
-### 5. Summary (5 min)
-[summary]
-
-## Key Teaching Notes
-[tips]`
+- Target Grade / Age: ${gradeOrAge}
+- Course Topic: ${topic.trim()}
+- Lesson Duration: ${lessonDuration}
+- Gender Focus: ${genderFocus}
+- School Setting: ${schoolSetting}
+- Class Size: ${classSize}
+- Preferred Teaching Style: ${teachingStyle}`
 
   const maxRetries = 4
   let lastError: string | null = null
@@ -86,15 +109,18 @@ serve(async (req) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
+          systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+          contents: [{ parts: [{ text: userMessage }] }],
           generationConfig: {
             temperature: 0.7,
-            maxOutputTokens: 4096,
+            maxOutputTokens: 8192,
             thinkingConfig: { thinkingBudget: -1 },
           },
           safetySettings: [
             { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
             { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
+            { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
+            { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
           ],
         }),
       })
@@ -103,7 +129,6 @@ serve(async (req) => {
 
       if (data.error) {
         lastError = data.error.message
-        // Check for rate limiting
         if (data.error.code === 429 || lastError?.includes('quota') || lastError?.includes('rate')) {
           continue
         }
