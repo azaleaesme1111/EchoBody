@@ -1,5 +1,11 @@
 import { useState, useRef } from 'react'
+import { Send, Presentation, Sparkles } from 'lucide-react'
 import { useAuth } from '@/providers/AuthProvider'
+import { THEMES } from '@/components/StylePickerModal'
+import type { SlideTheme } from '@/components/StylePickerModal'
+import SlideViewer from '@/components/SlideViewer'
+import type { SlideData, TypographyConfig } from '@/components/SlideViewer'
+import { TYPOGRAPHY } from '@/components/SlideViewer'
 
 const TEMPLATES: { id: string; title: string; grade: string; duration: string; objectives: string[]; steps: string[] }[] = [
   {
@@ -188,7 +194,40 @@ export default function CourseDesign() {
   const [aiStyle, setAiStyle] = useState(STYLE_OPTIONS[0].value)
   const [showAdvanced, setShowAdvanced] = useState(false)
 
+  // Refine chat state
+  const [refineMessages, setRefineMessages] = useState<{ role: string; content: string }[]>([])
+  const [refineInput, setRefineInput] = useState('')
+  const [refineLoading, setRefineLoading] = useState(false)
+
+  // Slides flow state
+  const [slides, setSlides] = useState<SlideData[] | null>(null)
+  const [slidesLoading, setSlidesLoading] = useState(false)
+  const [slidesError, setSlidesError] = useState('')
+  const [currentTheme, setCurrentTheme] = useState<SlideTheme | null>(null)
+  const [typography, setTypography] = useState<TypographyConfig | null>(null)
+
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const refineEndRef = useRef<HTMLDivElement | null>(null)
+
+  // ── API call helper ──────────────────────────────────────────────────────
+  const callApi = async (body: Record<string, any>) => {
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+    const response = await fetch(`${supabaseUrl}/functions/v1/ai-lesson`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', apikey: supabaseAnonKey },
+      body: JSON.stringify(body),
+    })
+    if (!response.ok) {
+      const errText = await response.text()
+      let errorMsg = `Server error ${response.status}`
+      try { const j = JSON.parse(errText); errorMsg = j.error || errorMsg } catch { errorMsg = errText.slice(0, 200) }
+      throw new Error(errorMsg)
+    }
+    const data = await response.json()
+    if (data.error) throw new Error(data.error)
+    return data
+  }
 
   const handleGenerate = async () => {
     if (!aiTopic.trim()) return
@@ -199,47 +238,21 @@ export default function CourseDesign() {
       setAiLoading(true)
       setAiError('')
       setAiResult('')
+      setRefineMessages([])
+      setSlides(null)
+      setSlidesError('')
 
       try {
-        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-        const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
-
-        const response = await fetch(`${supabaseUrl}/functions/v1/ai-lesson`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            apikey: supabaseAnonKey,
-          },
-          body: JSON.stringify({
-            topic: aiTopic.trim(),
-            gradeOrAge: aiGrade,
-            lessonDuration: aiDuration,
-            genderFocus: aiGender,
-            schoolSetting: aiSetting,
-            classSize: aiClassSize,
-            teachingStyle: aiStyle,
-          }),
+        const data = await callApi({
+          action: 'generate',
+          topic: aiTopic.trim(),
+          gradeOrAge: aiGrade,
+          lessonDuration: aiDuration,
+          genderFocus: aiGender,
+          schoolSetting: aiSetting,
+          classSize: aiClassSize,
+          teachingStyle: aiStyle,
         })
-
-        if (!response.ok) {
-          const errText = await response.text()
-          let errorMsg = `Server error ${response.status}`
-          try {
-            const errJson = JSON.parse(errText)
-            errorMsg = errJson.error || errorMsg
-          } catch {
-            errorMsg = errText.slice(0, 200)
-          }
-          setAiError(errorMsg)
-          return
-        }
-
-        const data = await response.json()
-        if (data.error) {
-          setAiError(data.error)
-          return
-        }
-
         setAiResult(data.content || 'No response generated')
       } catch (e: any) {
         setAiError(e.message || 'Network error, please try again')
@@ -247,6 +260,90 @@ export default function CourseDesign() {
         setAiLoading(false)
       }
     }, 500)
+  }
+
+  // ── Refine with AI ──────────────────────────────────────────────────────
+  const handleRefine = async () => {
+    if (!refineInput.trim() || !aiResult || refineLoading) return
+    const feedback = refineInput.trim()
+    setRefineMessages(prev => [...prev, { role: 'user', content: feedback }])
+    setRefineInput('')
+    setRefineLoading(true)
+
+    try {
+      const data = await callApi({ action: 'refine', currentPlan: aiResult, feedback })
+      setRefineMessages(prev => [...prev, { role: 'assistant', content: data.content }])
+      setAiResult(data.content)
+    } catch (e: any) {
+      setRefineMessages(prev => [...prev, { role: 'assistant', content: `Error: ${e.message}` }])
+    } finally {
+      setRefineLoading(false)
+      setTimeout(() => refineEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
+    }
+  }
+
+  // ── Grade Level Inference (decoupled from color theme) ─────────────────
+  const inferGradeLevel = (): 'low' | 'high' => {
+    const g = aiGrade.toLowerCase().trim()
+
+    // Extract explicit number: "grade 4", "grade4", "4th grade", "4th", "4-6"
+    const numMatch = g.match(/(\d+)(?:\s*[-–]\s*(\d+))?/)
+    if (numMatch) {
+      const first = parseInt(numMatch[1])
+      if (first >= 1 && first <= 6) return 'low'
+      if (first >= 7 && first <= 12) return 'high'
+    }
+
+    // Keyword matching
+    if (/elementary|primary|kids?|young|lower/i.test(g)) return 'low'
+    if (/middle|high|secondary|teen|adolescen|adult/i.test(g)) return 'high'
+
+    // Age range: "8-10", "10-12 years", "15-18"
+    const ageMatch = g.match(/(\d+)\s*[-–]\s*(\d+)\s*(year|yr|y\.o)/i)
+    if (ageMatch) {
+      const avg = (parseInt(ageMatch[1]) + parseInt(ageMatch[2])) / 2
+      if (avg <= 11) return 'low'
+      return 'high'
+    }
+
+    // Default
+    return 'high'
+  }
+
+  // Smart default theme based on grade context
+  const inferDefaultTheme = (): SlideTheme => {
+    const level = inferGradeLevel()
+    if (level === 'low') return THEMES.find(t => t.id === 'warm-cream') || THEMES[0]
+    // Check topic for context-aware color selection
+    const topic = aiTopic.toLowerCase()
+    if (/physi|body|health|boundar/i.test(topic)) return THEMES.find(t => t.id === 'soft-sage') || THEMES[1]
+    if (/online|social|digital|cyber|network/i.test(topic)) return THEMES.find(t => t.id === 'ocean-breeze') || THEMES[2]
+    return THEMES.find(t => t.id === 'ocean-breeze') || THEMES[2]
+  }
+
+  // ── Generate Slides (auto-infer grade + theme) ─────────────────────────
+  const handleGenerateSlides = async () => {
+    const level = inferGradeLevel()
+    const theme = inferDefaultTheme()
+    const typo = TYPOGRAPHY[level]
+
+    console.log(`[PPT Generator] Parsed Grade Level: ${level === 'low' ? 'Low' : 'High'} (input: "${aiGrade}")`)
+    console.log(`[PPT Generator] Theme: ${theme.name} | Typography: ${level} (${typo.titleFont}/${typo.bodyFont})`)
+
+    setCurrentTheme(theme)
+    setTypography(typo)
+    setSlidesLoading(true)
+    setSlidesError('')
+    setSlides(null)
+
+    try {
+      const data = await callApi({ action: 'slides', lessonPlan: aiResult })
+      setSlides(data.slides || [])
+    } catch (e: any) {
+      setSlidesError(e.message || 'Failed to generate slides')
+    } finally {
+      setSlidesLoading(false)
+    }
   }
 
   const selected = TEMPLATES.find(t => t.id === selectedTemplate)
@@ -389,6 +486,93 @@ export default function CourseDesign() {
             </div>
           </div>
         )}
+
+        {/* ── Refine with AI (chat) ──────────────────────────────────────── */}
+        {aiResult && (
+          <div className="mt-5 border-t border-gray-100 pt-5">
+            <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+              <Sparkles size={14} className="text-violet-500" />
+              Refine with AI
+            </h4>
+
+            {/* Message history */}
+            {refineMessages.length > 0 && (
+              <div className="space-y-3 mb-4 max-h-64 overflow-y-auto">
+                {refineMessages.map((msg, i) => (
+                  <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${
+                      msg.role === 'user'
+                        ? 'bg-violet-600 text-white rounded-br-md'
+                        : 'bg-gray-100 text-gray-800 rounded-bl-md'
+                    }`}>
+                      {msg.role === 'assistant' ? renderMarkdown(msg.content) : msg.content}
+                    </div>
+                  </div>
+                ))}
+                {refineLoading && (
+                  <div className="flex justify-start">
+                    <div className="bg-gray-100 rounded-2xl rounded-bl-md px-4 py-3 text-sm text-gray-500">
+                      <span className="flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-bounce" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-bounce [animation-delay:0.15s]" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-bounce [animation-delay:0.3s]" />
+                        Refining...
+                      </span>
+                    </div>
+                  </div>
+                )}
+                <div ref={refineEndRef} />
+              </div>
+            )}
+
+            {/* Input */}
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={refineInput}
+                onChange={e => setRefineInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleRefine()}
+                placeholder="e.g. Make the activity 10 minutes shorter, use simpler language..."
+                className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-100 outline-none text-sm text-gray-900"
+                disabled={refineLoading}
+              />
+              <button
+                onClick={handleRefine}
+                disabled={refineLoading || !refineInput.trim()}
+                className="bg-violet-600 text-white px-4 py-2.5 rounded-xl hover:bg-violet-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+              >
+                <Send size={16} />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── Generate Slides CTA ─────────────────────────────────────────── */}
+        {aiResult && (
+          <div className="mt-5">
+            <button
+              onClick={handleGenerateSlides}
+              disabled={slidesLoading}
+              className="w-full bg-gradient-to-r from-violet-600 to-pink-500 text-white py-3.5 px-6 rounded-xl font-semibold hover:opacity-90 transition-opacity flex items-center justify-center gap-3 shadow-lg shadow-violet-200 disabled:opacity-60"
+            >
+              <Presentation size={20} />
+              Generate Slides
+            </button>
+            {slidesLoading && (
+              <div className="mt-3 text-center text-sm text-violet-600 flex flex-col items-center gap-1">
+                <div className="flex items-center gap-2">
+                  <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                  </svg>
+                  Generating slides...
+                </div>
+                <span className="text-xs text-violet-400">AI matched: {inferDefaultTheme().name} · {inferGradeLevel() === 'low' ? '🎨 Playful' : '📐 Clean'} layout</span>
+              </div>
+            )}
+            {slidesError && <p className="mt-2 text-sm text-red-500">{slidesError}</p>}
+          </div>
+        )}
       </div>
 
       {/* ── Lesson Templates & Discussion Questions ──────────────────── */}
@@ -483,6 +667,16 @@ export default function CourseDesign() {
             </div>
           ))}
         </div>
+      )}
+
+      {/* ── Slide Viewer ────────────────────────────────────────────────── */}
+      {slides && currentTheme && typography && (
+        <SlideViewer
+          slides={slides}
+          theme={currentTheme}
+          typography={typography}
+          onClose={() => { setSlides(null); setCurrentTheme(null); setTypography(null) }}
+        />
       )}
     </div>
   )

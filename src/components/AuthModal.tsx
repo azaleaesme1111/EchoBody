@@ -37,12 +37,18 @@ export default function AuthModal() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoginError('')
-    if (!loginEmail || !loginPassword) {
-      setLoginError('Please fill in both email and password')
+    if (!loginEmail.trim()) {
+      setLoginError('Please enter your email address.')
+      return
+    }
+    if (!loginPassword) {
+      setLoginError('Please enter your password.')
       return
     }
     setLoginLoading(true)
+    console.log('[AuthModal] Login form submitted for:', loginEmail)
     const result = await login(loginEmail, loginPassword, loginRole)
+    console.log('[AuthModal] Login result:', result.error ? `ERROR: ${result.error}` : 'SUCCESS')
     if (result.error) {
       setLoginError(result.error)
       setLoginLoading(false)
@@ -55,20 +61,30 @@ export default function AuthModal() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault()
     setRegError('')
-    if (!regName || !regEmail || !regPassword || !regConfirmPassword) {
-      setRegError('Please fill in all fields')
+    if (!regName.trim()) {
+      setRegError('Please enter your name.')
+      return
+    }
+    if (!regEmail.trim()) {
+      setRegError('Please enter your email address.')
+      return
+    }
+    if (!regPassword || !regConfirmPassword) {
+      setRegError('Please fill in both password fields.')
       return
     }
     if (regPassword !== regConfirmPassword) {
-      setRegError('Passwords do not match')
+      setRegError('Passwords do not match.')
       return
     }
     if (regPassword.length < 6) {
-      setRegError('Password must be at least 6 characters')
+      setRegError('Password must be at least 6 characters.')
       return
     }
     setRegLoading(true)
+    console.log('[AuthModal] Register form submitted for:', regEmail)
     const result = await register(regEmail, regPassword, regName, regRole)
+    console.log('[AuthModal] Register result:', result.error ? `ERROR: ${result.error}` : 'SUCCESS')
     if (result.error) {
       setRegError(result.error)
       setRegLoading(false)

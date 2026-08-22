@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <circle cx="50" cy="50" r="45" fill="#7C3AED"/>
-  <path d="M50 20 C35 20 25 35 25 50 C25 65 35 80 50 80 C65 80 75 65 75 50 C75 35 65 20 50 20 Z" fill="white" opacity="0.2"/>
-  <path d="M50 30 C40 30 32 40 32 50 C32 60 40 70 50 70 C60 70 68 60 68 50 C68 40 60 30 50 30 Z" fill="white" opacity="0.4"/>
-  <text x="50" y="58" text-anchor="middle" font-size="24" fill="white" font-family="system-ui"> Hear </text>
-</svg>

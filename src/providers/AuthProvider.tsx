@@ -67,29 +67,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let unsub: (() => void) | undefined
 
+    console.log('[Auth] Initializing — checking existing session...')
+
     // Check existing session
-    supabase.auth.getSession().then(({ data }) => {
+    supabase.auth.getSession().then(({ data, error }) => {
+      if (error) {
+        console.error('[Auth] getSession error:', error.message)
+        setLoading(false)
+        return
+      }
       const session = data?.session
+      console.log('[Auth] Session found:', !!session, session?.user?.email ? `(${session.user.email})` : '')
       if (session?.user) {
-        fetchProfile(session.user.id).then(setUser)
+        fetchProfile(session.user.id).then(profile => {
+          console.log('[Auth] Profile loaded:', profile ? `${profile.name} (${profile.role})` : 'NULL — profile missing')
+          setUser(profile)
+        })
       }
       setLoading(false)
-    }).catch(() => {
+    }).catch((err) => {
+      console.error('[Auth] getSession exception:', err)
       setLoading(false)
     })
 
     // Listen for auth changes
     try {
       const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+        console.log('[Auth] State change:', _event, session?.user?.email || 'no user')
         if (session?.user) {
-          fetchProfile(session.user.id).then(setUser)
+          fetchProfile(session.user.id).then(profile => {
+            console.log('[Auth] Profile on state change:', profile ? `${profile.name}` : 'NULL')
+            setUser(profile)
+          })
         } else {
           setUser(null)
         }
       })
       unsub = data?.subscription?.unsubscribe?.bind(data.subscription)
-    } catch {
-      // Supabase not configured — skip listener
+    } catch (err) {
+      console.warn('[Auth] Could not set up auth listener:', err)
     }
 
     return () => unsub?.()
@@ -97,50 +113,116 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function fetchProfile(userId: string): Promise<User | null> {
     try {
+      console.log('[Auth] Fetching profile for userId:', userId)
       const { data, error } = await supabase
         .from('profiles')
         .select('id, name, role')
         .eq('id', userId)
         .single()
 
-      if (error || !data) return null
+      if (error) {
+        console.error('[Auth] Profile query error:', error.message, error.code)
+        return null
+      }
+      if (!data) {
+        console.warn('[Auth] No profile found for userId:', userId)
+        return null
+      }
+      console.log('[Auth] Profile fetched:', data.name, data.role)
       return { id: data.id, name: data.name, role: data.role as 'teacher' | 'student' | 'admin' }
-    } catch {
+    } catch (err: any) {
+      console.error('[Auth] fetchProfile exception:', err.message || err)
       return null
     }
   }
 
   const login = async (email: string, password: string, _role: 'teacher' | 'student') => {
     try {
+      console.log('[Auth] Login attempt:', email, 'role:', _role)
       const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-      if (error) return { error: error.message }
-      if (data.user) {
-        const profile = await fetchProfile(data.user.id)
-        setUser(profile)
+
+      if (error) {
+        console.error('[Auth] Login failed — Supabase error:', error.message, error.code)
+        // Map raw Supabase errors to user-friendly messages
+        const msg = error.message.toLowerCase()
+        if (msg.includes('invalid login credentials'))
+          return { error: 'Invalid email or password. Please check and try again.' }
+        if (msg.includes('email not confirmed'))
+          return { error: 'Email not yet verified. Please check your inbox for the confirmation link.' }
+        if (msg.includes('too many'))
+          return { error: 'Too many failed attempts. Please wait a moment and try again.' }
+        return { error: error.message }
       }
+
+      if (!data.user) {
+        console.error('[Auth] Login succeeded but no user returned')
+        return { error: 'Login succeeded but no user data returned.' }
+      }
+
+      console.log('[Auth] Login success! User ID:', data.user.id, 'Email:', data.user.email)
+      console.log('[Auth] Session token present:', !!data.session?.access_token)
+
+      const profile = await fetchProfile(data.user.id)
+      if (!profile) {
+        console.warn('[Auth] Profile is null after login — user will see as logged out')
+        return { error: 'Login succeeded, but no profile was found. Please contact support or re-register.' }
+      }
+      setUser(profile)
+      console.log('[Auth] User state set:', profile.name, profile.role)
       return { error: null }
     } catch (e: any) {
-      return { error: e.message }
+      console.error('[Auth] Login exception:', e.message || e)
+      return { error: e.message || 'An unexpected error occurred. Please try again.' }
     }
   }
 
   const register = async (email: string, password: string, name: string, role: 'teacher' | 'student') => {
     try {
+      console.log('[Auth] Register attempt:', email, 'name:', name, 'role:', role)
       const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { name, role } } })
-      if (error) return { error: error.message }
-      if (data.user) {
-        const profile = await fetchProfile(data.user.id)
+
+      if (error) {
+        console.error('[Auth] Register failed:', error.message)
+        const msg = error.message.toLowerCase()
+        if (msg.includes('already registered') || msg.includes('already exists'))
+          return { error: 'This email is already registered. Please log in instead.' }
+        return { error: error.message }
+      }
+
+      if (!data.user) {
+        console.error('[Auth] Register succeeded but no user returned')
+        return { error: 'Registration completed but no user data returned.' }
+      }
+
+      console.log('[Auth] Register success! User ID:', data.user.id)
+
+      // If email confirmation is required, profile won't exist yet
+      const profile = await fetchProfile(data.user.id)
+      if (profile) {
         setUser(profile)
+        console.log('[Auth] Profile auto-created:', profile.name)
+      } else {
+        console.warn('[Auth] Profile not found after register — email confirmation may be required')
+        // Still create a local user from metadata so the UI doesn't break
+        setUser({ id: data.user.id, name, role })
       }
       return { error: null }
     } catch (e: any) {
-      return { error: e.message }
+      console.error('[Auth] Register exception:', e.message || e)
+      return { error: e.message || 'An unexpected error occurred.' }
     }
   }
 
   const logout = async () => {
-    await supabase.auth.signOut()
-    setUser(null)
+    console.log('[Auth] Logging out...')
+    try {
+      await supabase.auth.signOut()
+      setUser(null)
+      console.log('[Auth] Logout complete')
+    } catch (err: any) {
+      console.error('[Auth] Logout error:', err.message || err)
+      setUser(null) // still clear local state
+    }
   }
 
   return (

@@ -17,7 +17,11 @@ if (!supabaseUrl || !supabaseAnonKey) {
  */
 function createSafeClient(): SupabaseClient {
   if (supabaseUrl && supabaseAnonKey) {
-    return createClient(supabaseUrl, supabaseAnonKey)
+    console.log('[Supabase] Client initializing — URL:', supabaseUrl)
+    console.log('[Supabase] Anon key format:', supabaseAnonKey.slice(0, 20) + '...', `length: ${supabaseAnonKey.length}`)
+    const client = createClient(supabaseUrl, supabaseAnonKey)
+    console.log('[Supabase] Client created successfully')
+    return client
   }
 
   // Return a proxy that logs warnings instead of crashing

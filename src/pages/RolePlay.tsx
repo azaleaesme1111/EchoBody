@@ -47,6 +47,9 @@ export default function RolePlay() {
   const [customInput, setCustomInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
+  // ── 追踪用户消息是否已立即显示（先发再 think） ──────────
+  const pendingUserMsgRef = useRef<string | null>(null)
+
   // ── AI 建议 ─────────────────────────────────────────────
   const [suggestions, setSuggestions] = useState<string[]>([])
   const [isGeneratingSuggestions, setIsGeneratingSuggestions] = useState(false)
@@ -90,7 +93,11 @@ export default function RolePlay() {
     if (!fsmState || !selectedScenario) return
     const lastMsg = fsmState.messages[fsmState.messages.length - 1]
     if (lastMsg?.sender !== 'npc') return
-    fetchSuggestionsRef.current?.(fsmState, selectedScenario)
+    // 延迟一小段时间确保用户消息已渲染后再触发 suggestion 生成
+    const timer = setTimeout(() => {
+      fetchSuggestionsRef.current?.(fsmState, selectedScenario)
+    }, 300)
+    return () => clearTimeout(timer)
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fsmState?.messages.length, selectedScenario])
 
@@ -114,6 +121,9 @@ export default function RolePlay() {
   // ════════════════════════════════════════════════════════
   // 开始游戏
   // ════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════
+  // 开始游戏
+  // ════════════════════════════════════════════════════════
   const startGame = useCallback((scenario: ScenarioConfig) => {
     if (!requireAuth()) return
     const initialState = createInitialState(scenario)
@@ -123,9 +133,8 @@ export default function RolePlay() {
     setCustomInput('')
     setSuggestions([])
   }, [requireAuth])
-
   // ════════════════════════════════════════════════════════
-  // 发送用户输入（立即发出，不等 NPC）
+  // 发送用户输入（先发用户消息，再显示 thinking，最后处理 AI 响应）
   // ════════════════════════════════════════════════════════
   const sendInput = useCallback(async () => {
     if (!fsmState || !selectedScenario || isLoading) return
@@ -135,6 +144,20 @@ export default function RolePlay() {
 
     setIsLoading(true)
     setSuggestions([])
+
+    // 第一步：立即将用户消息加入消息列表（先发）
+    const userMessage: import('@/types/roleplay').ChatMessage = {
+      sender: 'user',
+      content: userInput,
+      timestamp: Date.now(),
+    }
+    pendingUserMsgRef.current = userInput
+
+    setFsmState(prev => prev ? { ...prev, messages: [...prev.messages, userMessage] } : prev)
+    setCustomInput('')
+
+    // 第二步：等待一帧让 UI 渲染用户消息后再显示 thinking
+    await new Promise(r => setTimeout(r, 50))
 
     try {
       // 第一层隔离：NLU 意图解析
@@ -150,7 +173,7 @@ export default function RolePlay() {
       }
 
       // 第二层隔离：FSM 状态门控
-      let newMessages = [...fsmState.messages]
+      let newMessages = [...fsmState.messages, userMessage]
       let newAssertiveness = fsmState.assertiveness
       let newRisk = fsmState.risk
       let newStateNode = fsmState.currentNodeId
@@ -178,6 +201,8 @@ export default function RolePlay() {
         newStateNode = newState.currentNodeId
       }
 
+      pendingUserMsgRef.current = null
+
       setFsmState({
         ...fsmState,
         messages: newMessages,
@@ -186,8 +211,6 @@ export default function RolePlay() {
         currentNodeId: newStateNode,
         gameOver: false,
       })
-
-      setCustomInput('')
     } finally {
       setIsLoading(false)
     }
@@ -313,6 +336,12 @@ export default function RolePlay() {
               setViewMode('playing')
               setCustomInput('')
               setSuggestions([])
+              const initDisplayed = new Map<number, string>()
+              initial.messages.forEach((msg, i) => {
+                if (msg.sender === 'npc' && msg.content) initDisplayed.set(i, msg.content)
+              })
+              setDisplayedMessages(initDisplayed)
+              typedMsgIndicesRef.current = new Set(initDisplayed.keys())
             }}
             className="btn-secondary px-6"
           >
@@ -353,6 +382,9 @@ export default function RolePlay() {
             }`}>
               {selectedScenario.difficulty.charAt(0).toUpperCase() + selectedScenario.difficulty.slice(1)}
             </span>
+            <span className="text-gray-500 font-medium">
+              Round <span className="text-pink-600 font-bold">{fsmState.round}</span> / {MAX_ROUNDS}
+            </span>
           </div>
         </div>
 
@@ -364,14 +396,6 @@ export default function RolePlay() {
               <span className="text-xs font-bold text-pink-600 uppercase tracking-wide">Your Goal</span>
               <p className="text-sm text-gray-700 mt-0.5">{selectedScenario.targetCondition}</p>
             </div>
-          </div>
-        </div>
-
-        {/* ── 数值条（隐藏具体数值） ── */}
-        <div className="card mb-4 py-3 px-4 flex-shrink-0">
-          <div className="grid grid-cols-2 gap-4">
-            <NumberBar label="Assertiveness (A)" value={fsmState.assertiveness} target={VICTORY_ASSERTIVENESS_THRESHOLD} goal="victory" />
-            <NumberBar label="Risk Level (R)" value={fsmState.risk} target={DEFEAT_RISK_THRESHOLD} goal="defeat" />
           </div>
         </div>
 
@@ -439,14 +463,14 @@ export default function RolePlay() {
               </button>
             </div>
 
-            {/* AI 建议回复（每轮 2 条，AI 实时生成） */}
+            {/* AI 建议回复（每轮固定 2 条，AI 实时生成） */}
             {isGeneratingSuggestions && (
               <div className="flex items-center gap-2 text-xs text-gray-400">
                 <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                 </svg>
-                Generating suggestions...
+                Generating 2 suggestions...
               </div>
             )}
             {suggestions.length > 0 && (
@@ -462,6 +486,12 @@ export default function RolePlay() {
                     {suggestion}
                   </button>
                 ))}
+              </div>
+            )}
+            {!isGeneratingSuggestions && suggestions.length === 0 && !isLoading && (
+              <div className="flex items-center gap-2 text-xs text-gray-400">
+                <span>💡</span>
+                <span>AI suggestions will appear after NPC responds</span>
               </div>
             )}
           </div>
