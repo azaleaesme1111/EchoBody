@@ -1,4 +1,6 @@
 import { useState, useRef } from 'react'
+import Markdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { useAuth } from '@/providers/AuthProvider'
 
 const TEMPLATES: { id: string; title: string; grade: string; duration: string; objectives: string[]; steps: string[] }[] = [
@@ -320,8 +322,34 @@ export default function CourseDesign() {
 
         {/* Generated result */}
         {aiResult && (
-          <div className="mt-4 p-4 bg-gray-50 rounded-xl text-sm text-gray-700 whitespace-pre-wrap max-h-96 overflow-y-auto">
-            {aiResult}
+          <div className="mt-4 p-6 bg-white rounded-xl border border-violet-100 prose prose-violet max-h-96 overflow-y-auto">
+            <Markdown
+              remarkPlugins={[remarkGfm]}
+              components={{
+                h1: ({ children }) => <h1 className="text-xl font-bold text-gray-900 mb-3 pb-2 border-b border-violet-100">{children}</h1>,
+                h2: ({ children }) => <h2 className="text-base font-semibold text-violet-700 mt-4 mb-2">{children}</h2>,
+                h3: ({ children }) => <h3 className="text-sm font-semibold text-violet-600 mt-3 mb-1">{children}</h3>,
+                p: ({ children }) => <p className="text-sm text-gray-700 leading-relaxed mb-2">{children}</p>,
+                ul: ({ children }) => <ul className="list-disc list-inside space-y-1 mb-2 text-sm text-gray-700">{children}</ul>,
+                ol: ({ children }) => <ol className="list-decimal list-inside space-y-1 mb-2 text-sm text-gray-700">{children}</ol>,
+                li: ({ children }) => <li className="pl-1">{children}</li>,
+                blockquote: ({ children }) => (
+                  <blockquote className="border-l-4 border-violet-300 bg-violet-50 text-violet-800 text-sm py-2 px-3 rounded-r my-2">{children}</blockquote>
+                ),
+                code: ({ children, className }) => (
+                  <code className={`text-xs font-mono px-1.5 py-0.5 rounded ${className ? 'bg-violet-100 text-violet-700' : 'bg-gray-100 text-gray-800'}`}>{children}</code>
+                ),
+                pre: ({ children }) => (
+                  <pre className="bg-gray-50 rounded-lg p-3 my-2 overflow-x-auto text-xs font-mono text-gray-800">{children}</pre>
+                ),
+                a: ({ href, children }) => (
+                  <a href={href} target="_blank" rel="noopener noreferrer" className="text-violet-600 hover:text-violet-800 underline text-sm">{children}</a>
+                ),
+                hr: () => <hr className="border-violet-100 my-3" />,
+              }}
+            >
+              {aiResult}
+            </Markdown>
           </div>
         )}
       </div>
