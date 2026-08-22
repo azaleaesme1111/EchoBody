@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/providers/AuthProvider'
+import Logo from '@/components/Logo'
 
 export default function LoginPage() {
   const { login } = useAuth()
@@ -33,13 +34,9 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-violet-600 text-white mb-4">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" />
-              <path d="M12 6v6l4 2" />
-            </svg>
+          <div className="mb-4">
+            <Logo size="md" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900">EchoBody</h1>
         </div>
 
         {/* Form */}

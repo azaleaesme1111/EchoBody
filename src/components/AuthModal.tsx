@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/providers/AuthProvider'
+import Logo from '@/components/Logo'
 
 export default function AuthModal() {
   const { authModalOpen, closeAuthModal, login, register } = useAuth()
@@ -112,11 +113,8 @@ export default function AuthModal() {
 
         {/* Header */}
         <div className="px-8 pt-8 pb-2 text-center">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-violet-600 text-white mb-3">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" />
-              <path d="M12 6v6l4 2" />
-            </svg>
+          <div className="mb-3">
+            <Logo size="sm" showText={false} />
           </div>
           <h2 className="text-xl font-bold text-gray-900">
             {tab === 'login' ? 'Welcome back' : 'Create Account'}
