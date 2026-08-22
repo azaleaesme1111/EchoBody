@@ -82,16 +82,24 @@ export default function RolePlay() {
     }
   }, [])
 
+  // ── 用于追踪已触发打字特效的消息索引，避免 useEffect 循环 ────
+  const typedMsgIndicesRef = useRef<Set<number>>(new Set())
+
   // ── 为每条 NPC 消息启动打字特效 ────────────────────────
   useEffect(() => {
     if (!fsmState) return
-    const lastMsg = fsmState.messages[fsmState.messages.length - 1]
+    const msgCount = fsmState.messages.length
+    const idx = msgCount - 1
+    // 只在新消息加入时触发，不依赖 displayedMessages 状态变化
+    if (idx <= typedMsgIndicesRef.current.size) return
+    if (displayedMessages.has(idx)) {
+      typedMsgIndicesRef.current.add(idx)
+      return
+    }
+
+    const lastMsg = fsmState.messages[idx]
     if (!lastMsg || lastMsg.sender !== 'npc' || lastMsg.content.length === 0) return
 
-    const idx = fsmState.messages.length - 1
-    if (displayedMessages.has(idx)) return // 已经播过了
-
-    setDisplayedMessages(prev => new Map(prev))
     const fullText = lastMsg.content
     let current = ''
     let i = 0
@@ -103,6 +111,7 @@ export default function RolePlay() {
           next.set(idx, fullText)
           return next
         })
+        typedMsgIndicesRef.current.add(idx)
         return
       }
       current += fullText[i]
@@ -116,10 +125,13 @@ export default function RolePlay() {
     }
 
     typingRefs.current.set(idx, setTimeout(typeNext, 100))
-  }, [fsmState?.messages, displayedMessages])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fsmState?.messages])
 
   // ── 生成 AI 建议 ────────────────────────────────────────
-  const fetchSuggestions = useCallback(async (state: FsmState, scenario: ScenarioConfig) => {
+  // 使用 ref 持有稳定引用，避免 useCallback 依赖 state setter 导致循环
+  const fetchSuggestionsRef = useRef<((state: FsmState, scenario: ScenarioConfig) => void) | null>(null)
+  fetchSuggestionsRef.current = async (state, scenario) => {
     const lastNpcMsg = [...state.messages].reverse().find(m => m.sender === 'npc')
     const lastUserMsg = [...state.messages].reverse().find(m => m.sender === 'user')
     if (!lastNpcMsg || !lastUserMsg) return
@@ -138,15 +150,16 @@ export default function RolePlay() {
     } finally {
       setIsGeneratingSuggestions(false)
     }
-  }, [])
+  }
 
   // 当新 NPC 消息出现时，生成建议
   useEffect(() => {
     if (!fsmState || !selectedScenario) return
     const lastMsg = fsmState.messages[fsmState.messages.length - 1]
     if (lastMsg?.sender !== 'npc') return
-    fetchSuggestions(fsmState, selectedScenario)
-  }, [fsmState?.messages.length, fetchSuggestions, selectedScenario])
+    fetchSuggestionsRef.current?.(fsmState, selectedScenario)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fsmState?.messages.length, selectedScenario])
 
   // ── 场景标签筛选 ────────────────────────────────────────
   const tags = ['All', ...Array.from(new Set(ALL_SCENARIOS.map(s => s.tag)))]
