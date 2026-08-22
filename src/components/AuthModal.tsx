@@ -1,8 +1,10 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/providers/AuthProvider'
 
 export default function AuthModal() {
   const { authModalOpen, closeAuthModal, login, register } = useAuth()
+  const navigate = useNavigate()
   const [tab, setTab] = useState<'login' | 'register'>('login')
 
   // Login form
@@ -47,6 +49,7 @@ export default function AuthModal() {
       return
     }
     handleClose()
+    navigate('/', { replace: true })
   }
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -72,6 +75,7 @@ export default function AuthModal() {
       return
     }
     handleClose()
+    navigate('/', { replace: true })
   }
 
   if (!authModalOpen) return null
