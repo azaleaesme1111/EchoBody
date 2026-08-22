@@ -1,0 +1,7 @@
+[[dependencies]]
+name = "groq"
+version = "0.0.0"
+
+[[dep.deno]]
+source = "npm:groq"
+version = "latest"

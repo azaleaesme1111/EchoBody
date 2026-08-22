@@ -69,19 +69,6 @@ const DISCUSSION_QUESTIONS: { id: string; topic: string; question: string; age: 
 ]
 
 // ── PRD: Parameter Options ──────────────────────────────────────────────────
-const GRADE_OPTIONS = [
-  { value: 'Elementary Grades 3-4 (8-10)', label: 'Grade 3-4' },
-  { value: 'Elementary Grades 5-6 (10-12)', label: 'Grade 5-6' },
-  { value: 'Middle School Grades 7-9 (12-15)', label: 'Grade 7-9' },
-  { value: 'High School Grades 10-12 (15-18)', label: 'Grade 10-12' },
-]
-
-const DURATION_OPTIONS = [
-  { value: '40 minutes', label: '40 min' },
-  { value: '45 minutes', label: '45 min' },
-  { value: '50 minutes', label: '50 min' },
-]
-
 const GENDER_OPTIONS = [
   { value: 'Co-ed / Inclusive', label: 'Co-ed' },
   { value: 'Girls only', label: 'Girls' },
