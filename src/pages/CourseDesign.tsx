@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 
 const TEMPLATES: { id: string; title: string; grade: string; duration: string; objectives: string[]; steps: string[] }[] = [
   {
@@ -92,35 +92,56 @@ export default function CourseDesign() {
   const [aiError, setAiError] = useState('')
   const [aiTopic, setAiTopic] = useState('')
   const [aiAgeGroup, setAiAgeGroup] = useState('elementary')
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const handleGenerate = async () => {
     if (!aiTopic.trim()) return
-    setAiLoading(true)
-    setAiError('')
-    setAiResult('')
+    if (debounceRef.current) clearTimeout(debounceRef.current)
 
-    try {
-      const { supabase } = await import('@/utils/supabase')
-      const { data, error } = await supabase.functions.invoke('ai-lesson', {
-        body: { topic: aiTopic.trim(), ageGroup: aiAgeGroup },
-      })
+    debounceRef.current = setTimeout(async () => {
+      setAiLoading(true)
+      setAiError('')
+      setAiResult('')
 
-      if (error) {
-        setAiError(error.message || 'Failed to generate lesson plan')
-        return
+      try {
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+        const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+
+        const response = await fetch(`${supabaseUrl}/functions/v1/ai-lesson`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            apikey: supabaseAnonKey,
+          },
+          body: JSON.stringify({ topic: aiTopic.trim(), ageGroup: aiAgeGroup }),
+        })
+
+        if (!response.ok) {
+          const errText = await response.text()
+          let errorMsg = `Server error ${response.status}`
+          try {
+            const errJson = JSON.parse(errText)
+            errorMsg = errJson.error || errorMsg
+          } catch {
+            errorMsg = errText.slice(0, 200)
+          }
+          setAiError(errorMsg)
+          return
+        }
+
+        const data = await response.json()
+        if (data.error) {
+          setAiError(data.error)
+          return
+        }
+
+        setAiResult(data.content || 'No response generated')
+      } catch (e: any) {
+        setAiError(e.message || 'Network error, please try again')
+      } finally {
+        setAiLoading(false)
       }
-
-      if (data?.error) {
-        setAiError(data.error)
-        return
-      }
-
-      setAiResult(data?.content || 'No response generated')
-    } catch (e: any) {
-      setAiError(e.message || 'Network error, please try again')
-    } finally {
-      setAiLoading(false)
-    }
+    }, 500)
   }
 
   const selected = TEMPLATES.find(t => t.id === selectedTemplate)

@@ -1,55 +1,13 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 
 const API_KEY = Deno.env.get('GOOGLE_API_KEY')
-const API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent'
-
-const SYSTEM_PROMPT = `You are an expert sex education curriculum designer for schools.
-Your task is to design a structured lesson plan framework in English, based on the topic and age group provided.
-Follow this exact format for your response (use Markdown):
-
-## Topic
-[The lesson topic]
-
-## Target Age Group
-[Elementary / Middle School / High School]
-
-## Learning Objectives
-1. [Objective 1]
-2. [Objective 2]
-3. [Objective 3]
-
-## Materials Needed
-- [Material 1]
-- [Material 2]
-- [Material 3]
-
-## Lesson Flow
-
-### 1. Introduction (5 minutes)
-[Description of the introduction activity]
-
-### 2. Core Teaching (15 minutes)
-[Description of the main teaching content]
-
-### 3. Interactive Activity (15 minutes)
-[Description of the interactive activity]
-
-### 4. Discussion & Sharing (10 minutes)
-[Description of the discussion activity]
-
-### 5. Summary & Homework (5 minutes)
-[Description of the summary]
-
-## Key Teaching Notes
-[Tips for educators on how to handle sensitive topics]
-
-Keep the content age-appropriate, professional, and practical for classroom use.`
+const API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent'
 
 serve(async (req) => {
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-goog-api-key',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, apikey',
   }
 
   if (req.method === 'OPTIONS') {
@@ -68,7 +26,7 @@ serve(async (req) => {
     body = await req.json()
   } catch {
     return new Response(
-      JSON.stringify({ error: 'Invalid request body' }),
+      JSON.stringify({ error: 'Invalid request body. Expected { topic, ageGroup }' }),
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
@@ -82,45 +40,93 @@ serve(async (req) => {
     )
   }
 
-  try {
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-goog-api-key': API_KEY,
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [{ text: SYSTEM_PROMPT + '\n\nTopic: ' + topic.trim() + '\nAge Group: ' + ageGroup }],
-          },
-        ],
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 1500,
-        },
-      }),
-    })
+  const prompt = `Design a sex ed lesson plan for "${topic.trim()}" (age: ${ageGroup}) in English.
 
-    const data = await response.json()
+## Topic
+[topic]
 
-    if (data.error) {
-      return new Response(
-        JSON.stringify({ error: data.error.message || 'Gemini API error' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+## Target Age Group
+[age group]
+
+## Learning Objectives
+1. [obj1]
+2. [obj2]
+3. [obj3]
+
+## Materials Needed
+- [mat1]
+- [mat2]
+- [mat3]
+
+## Lesson Flow
+### 1. Introduction (5 min)
+[activity]
+### 2. Core Teaching (15 min)
+[content]
+### 3. Interactive Activity (15 min)
+[activity]
+### 4. Discussion (10 min)
+[discussion]
+### 5. Summary (5 min)
+[summary]
+
+## Key Teaching Notes
+[tips]`
+
+  const maxRetries = 4
+  let lastError: string | null = null
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    if (attempt > 0) {
+      await new Promise(r => setTimeout(r, 4000 * attempt))
     }
 
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text
+    try {
+      const response = await fetch(`${API_URL}?key=${API_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 4096,
+            thinkingConfig: { thinkingBudget: -1 },
+          },
+          safetySettings: [
+            { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
+            { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' },
+          ],
+        }),
+      })
 
-    return new Response(
-      JSON.stringify({ content: text || 'No response generated' }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
-  } catch (e: any) {
-    return new Response(
-      JSON.stringify({ error: e.message || 'Failed to generate lesson plan' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+      const data = await response.json()
+
+      if (data.error) {
+        lastError = data.error.message
+        // Check for rate limiting
+        if (data.error.code === 429 || lastError?.includes('quota') || lastError?.includes('rate')) {
+          continue
+        }
+        return new Response(
+          JSON.stringify({ error: lastError }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text
+      if (text) {
+        return new Response(
+          JSON.stringify({ content: text }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+    } catch (e: any) {
+      lastError = e.message
+    }
   }
+
+  return new Response(
+    JSON.stringify({ error: lastError || 'Rate limited. Please wait a moment and try again.' }),
+    { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  )
 })
