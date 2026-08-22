@@ -1,6 +1,11 @@
-
-const CACHE_NAME = 'hear-her-voice-v1'
-const ASSETS = ['/', '/index.html', '/manifest.json']
+const BASE = '/EchoBody'
+const CACHE_NAME = `${BASE}-v1`
+const ASSETS = [
+  `${BASE}/`,
+  `${BASE}/index.html`,
+  `${BASE}/manifest.json`,
+  `${BASE}/vite.svg`,
+]
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE_NAME).then((c) => c.addAll(ASSETS)))
@@ -21,6 +26,6 @@ self.addEventListener('fetch', (e) => {
         caches.open(CACHE_NAME).then((c) => c.put(e.request, clone))
       }
       return resp
-    }).catch(() => caches.match('/index.html')))
+    }).catch(() => caches.match(`${BASE}/index.html`)))
   )
 })

@@ -35,7 +35,7 @@ export default function RegisterPage() {
       setLoading(false)
       return
     }
-    navigate('/', { replace: true })
+    navigate('.', { replace: true })
   }
 
   return (
