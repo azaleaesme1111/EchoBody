@@ -18,6 +18,9 @@ import {
   type NluParseResult,
 } from '@/services/roleplay/llmService'
 import { VICTORY_ASSERTIVENESS_THRESHOLD, DEFEAT_RISK_THRESHOLD } from '@/types/roleplay'
+// 在顶部相应的常量或类型导入处加上 MAX_ROUNDS
+// 声明单局最大回合数（通常为 10 或 15，按你的游戏规则调整）
+const MAX_ROUNDS = 10
 
 // ═══════════════════════════════════════════════════════════
 // 组件：RolePlay
