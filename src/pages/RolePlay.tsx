@@ -17,7 +17,6 @@ import {
   generateSuggestions,
   type NluParseResult,
 } from '@/services/roleplay/llmService'
-import { VICTORY_ASSERTIVENESS_THRESHOLD, DEFEAT_RISK_THRESHOLD } from '@/types/roleplay'
 // 在顶部相应的常量或类型导入处加上 MAX_ROUNDS
 // 声明单局最大回合数（通常为 10 或 15，按你的游戏规则调整）
 const MAX_ROUNDS = 10
@@ -343,8 +342,7 @@ export default function RolePlay() {
               initial.messages.forEach((msg, i) => {
                 if (msg.sender === 'npc' && msg.content) initDisplayed.set(i, msg.content)
               })
-              setDisplayedMessages(initDisplayed)
-              typedMsgIndicesRef.current = new Set(initDisplayed.keys())
+            setSuggestions([])
             }}
             className="btn-secondary px-6"
           >
@@ -521,46 +519,4 @@ export default function RolePlay() {
 // ═══════════════════════════════════════════════════════════
 // 子组件：数值条
 // ═══════════════════════════════════════════════════════════
-function NumberBar({
-  label, value, target, goal, showValue,
-}: {
-  label: string
-  value: number
-  target: number
-  goal: 'victory' | 'defeat'
-  showValue?: boolean
-}) {
-  const getColor = () => {
-    if (goal === 'victory') {
-      if (value >= target) return 'bg-green-500'
-      if (value >= target * 0.7) return 'bg-yellow-500'
-      return 'bg-pink-400'
-    }
-    if (value >= target) return 'bg-red-600'
-    if (value >= target * 0.7) return 'bg-orange-400'
-    return 'bg-green-400'
-  }
 
-  const getLabelColor = () => {
-    if (goal === 'victory') {
-      return value >= target ? 'text-green-700' : 'text-pink-600'
-    }
-    return value >= target ? 'text-red-700' : 'text-green-600'
-  }
-
-  return (
-    <div>
-      <div className="flex justify-between items-center mb-1">
-        <span className={`text-xs font-medium ${getLabelColor()}`}>{label}</span>
-        {!showValue && <span className="text-xs text-gray-400">Goal: {target}</span>}
-        {showValue && <span className="text-xs text-gray-400">{value} / {target}</span>}
-      </div>
-      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-        <div
-          className={`h-full rounded-full transition-all duration-500 ${getColor()}`}
-          style={{ width: `${value}%` }}
-        />
-      </div>
-    </div>
-  )
-}
