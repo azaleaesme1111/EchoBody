@@ -92,8 +92,8 @@ export default function FAQ() {
       {/* FAQ List */}
       <div className="space-y-3">
         {filtered.map(f => (
-          <button key={f.id} onClick={() => setExpandedId(expandedId === f.id ? null : f.id)}
-            className="card w-full text-left transition-all hover:border-violet-200">
+          <div key={f.id} onClick={() => setExpandedId(expandedId === f.id ? null : f.id)}
+            className="card w-full text-left transition-all hover:border-violet-200 cursor-pointer">
             <div className="flex items-start justify-between gap-3">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
@@ -127,7 +127,7 @@ export default function FAQ() {
                 </div>
               </div>
             )}
-          </button>
+          </div>
         ))}
       </div>
     </div>
