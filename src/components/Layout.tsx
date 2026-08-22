@@ -10,7 +10,8 @@ export default function Layout() {
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
 
-  const currentModule = MODULES.find(m => location.pathname.startsWith(m.path)) || MODULES[0]
+  const isHome = location.pathname === '/' || location.pathname === ''
+  const currentModule = isHome ? null : MODULES.find(m => location.pathname.startsWith(m.path)) || null
 
   const handleLogout = () => {
     logout()
@@ -52,7 +53,8 @@ export default function Layout() {
         </div>
       </header>
 
-      {/* Module nav */}
+      {/* Module nav — hidden on homepage */}
+      {!isHome && (
       <nav className="bg-white border-b border-violet-50 overflow-x-auto">
         <div className="max-w-5xl mx-auto px-4 flex gap-1 min-w-max">
           {MODULES.map(m => (
@@ -70,10 +72,11 @@ export default function Layout() {
           ))}
         </div>
       </nav>
+      )}
 
       {/* Main */}
       <main className="flex-1">
-        {currentModule && (
+        {currentModule && !isHome && (
           <div className="bg-gradient-to-r from-violet-50 to-pink-50 border-b border-violet-100">
             <div className="max-w-5xl mx-auto px-4 py-6">
               <h1 className="text-2xl font-bold text-gray-900">{currentModule.label}</h1>
@@ -81,12 +84,13 @@ export default function Layout() {
             </div>
           </div>
         )}
-        <div className="max-w-5xl mx-auto px-4 py-8">
+        <div className={`max-w-5xl mx-auto px-4 ${isHome ? 'py-2' : 'py-8'}`}>
           <Outlet />
         </div>
       </main>
 
-      {/* Bottom nav for mobile */}
+      {/* Bottom nav for mobile — hidden on homepage */}
+      {!isHome && (
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-violet-100 z-50">
         <div className="flex justify-around py-2">
           {MODULES.map(m => (
@@ -102,6 +106,7 @@ export default function Layout() {
           ))}
         </div>
       </nav>
+      )}
     </div>
   )
 }

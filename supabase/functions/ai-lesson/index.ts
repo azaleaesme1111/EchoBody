@@ -65,13 +65,14 @@ Professional, empathetic, age-appropriate, culturally sensitive, and easy for te
 
 ## Markdown Output Format Rules (STRICT)
 You MUST follow these formatting rules precisely:
-1. Use standard Markdown headings: # for title, ## for sections, ### for subsections. Never use asterisks as headings.
-2. Use - (hyphen + space) for unordered list items. Never use * (asterisk) for bullets.
+1. Use # for the lesson title, ## for main sections, ### for subsections. The VERY FIRST line must be # followed by the title text.
+2. Use - (hyphen + space) for unordered list items. NEVER use * (asterisk) for bullets.
 3. Use 1. 2. 3. for ordered lists with proper numbering.
-4. Bold text with **text** must always appear in PAIRS — opening ** and closing ** on the same line. Never leave a bare ** at the start of a line.
-5. Never mix raw asterisks with Markdown syntax. Every ** must be part of a valid bold pair.
-6. Separate sections with a blank line. Use consistent line breaks (\n\n between paragraphs).
-7. Do not output any decorative separators like --- or *** unless they serve as a Markdown horizontal rule between major sections.`
+4. Bold text uses **text** syntax. The ** markers must wrap actual words (e.g. **Key Concept**), never appear at the start of a line alone.
+5. NEVER output lines that begin with ** or *. Every line must start with a heading marker (#, ##, ###), a list marker (- or 1.), or plain text.
+6. Separate all sections with a blank line. Use \n\n between every paragraph.
+7. Do not use *** or --- as decorative separators.
+8. The first paragraph after the # title should be plain text or use **bold** within sentences — NOT wrapped entirely in **.`
 
 const REFINE_PROMPT = `You are an expert curriculum specialist helping teachers refine their lesson plans.
 

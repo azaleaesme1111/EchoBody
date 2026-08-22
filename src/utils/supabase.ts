@@ -12,6 +12,34 @@ if (!supabaseUrl || !supabaseAnonKey) {
 }
 
 /**
+ * Timeout wrapper — rejects if the promise doesn't resolve within `ms` milliseconds.
+ */
+export function withTimeout<T>(promise: Promise<T>, ms: number, label = 'Operation'): Promise<T> {
+  const timeout = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error(`${label} timed out after ${ms / 1000}s. Please check your network and try again.`)), ms)
+  )
+  return Promise.race([promise, timeout])
+}
+
+/**
+ * Retry wrapper — retries once on failure (useful for Supabase cold-start recovery).
+ */
+export async function withRetry<T>(fn: () => Promise<T>, retries = 1, delayMs = 2000): Promise<T> {
+  try {
+    return await fn()
+  } catch (err: any) {
+    if (retries <= 0) throw err
+    const isNetwork = err?.message?.includes('timed out') || err?.message?.includes('Failed to fetch') || err?.message?.includes('ERR_CONNECTION')
+    if (isNetwork) {
+      console.warn(`[Supabase] Network error, retrying in ${delayMs / 1000}s... (${err.message})`)
+      await new Promise(r => setTimeout(r, delayMs))
+      return fn()
+    }
+    throw err
+  }
+}
+
+/**
  * A no-op Supabase client that returns safe defaults when env vars are missing.
  * This prevents the entire app from crashing due to misconfiguration.
  */
@@ -19,8 +47,18 @@ function createSafeClient(): SupabaseClient {
   if (supabaseUrl && supabaseAnonKey) {
     console.log('[Supabase] Client initializing — URL:', supabaseUrl)
     console.log('[Supabase] Anon key format:', supabaseAnonKey.slice(0, 20) + '...', `length: ${supabaseAnonKey.length}`)
-    const client = createClient(supabaseUrl, supabaseAnonKey)
-    console.log('[Supabase] Client created successfully')
+    const client = createClient(supabaseUrl, supabaseAnonKey, {
+      global: {
+        fetch: (url, options = {}) => {
+          return fetch(url, { ...options, signal: AbortSignal.timeout(15000) })
+        },
+      },
+      auth: {
+        autoRefreshToken: true,
+        persistSession: true,
+      },
+    })
+    console.log('[Supabase] Client created successfully (15s fetch timeout)')
     return client
   }
 

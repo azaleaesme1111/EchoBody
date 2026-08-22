@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 import { Send, Presentation, Sparkles } from 'lucide-react'
 import { useAuth } from '@/providers/AuthProvider'
+import { supabase } from '@/utils/supabase'
 import { THEMES } from '@/components/StylePickerModal'
 import type { SlideTheme } from '@/components/StylePickerModal'
 import SlideViewer from '@/components/SlideViewer'
@@ -115,25 +116,17 @@ const TOPIC_EXAMPLES = [
 // ── Markdown sanitize helper ─────────────────────────────────────────────────
 function sanitizeMarkdown(text: string): string {
   let s = text
-  // 1. Fix unclosed ** bold: if odd number of ** on a line, remove the trailing one
-  s = s.split('\n').map(line => {
-    const count = (line.match(/\*\*/g) || []).length
-    if (count % 2 !== 0) {
-      // Remove the last standalone ** that has no pair
-      const lastIdx = line.lastIndexOf('**')
-      if (lastIdx !== -1) {
-        line = line.slice(0, lastIdx) + line.slice(lastIdx + 2)
-      }
-    }
-    return line
-  }).join('\n')
-  // 2. Convert bare asterisk bullets (* item) to proper markdown dashes (- item)
-  s = s.replace(/^(\*)\s+/gm, '- ')
+  // 1. Remove ALL asterisks — our renderer uses styled badges/bold instead of ** markers
+  s = s.replace(/\*/g, '')
+  // 2. Remove decorative separator lines (---)
+  s = s.replace(/^-{3,}\s*$/gm, '')
   // 3. Ensure ## headings have a blank line before them (for proper paragraph breaks)
   s = s.replace(new RegExp('([^\\n])\\n(#{1,3}\\s)', 'g'), '$1\\n\\n$2')
   // 4. Normalize multiple consecutive blank lines to max 2
   s = s.replace(/\n{3,}/g, '\n\n')
-  // 5. Strip leading/trailing whitespace
+  // 5. Strip leading # from the very first line (it becomes section title, rendered with styled badge)
+  s = s.replace(/^# /, '')
+  // 6. Strip leading/trailing whitespace
   return s.trim()
 }
 
@@ -232,6 +225,12 @@ export default function CourseDesign() {
   const [slidesError, setSlidesError] = useState('')
   const [currentTheme, setCurrentTheme] = useState<SlideTheme | null>(null)
   const [typography, setTypography] = useState<TypographyConfig | null>(null)
+
+  // Assign lesson state
+  const [assignLoading, setAssignLoading] = useState(false)
+  const [joinCode, setJoinCode] = useState('')
+  const [assignError, setAssignError] = useState('')
+  const [showAssignModal, setShowAssignModal] = useState(false)
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const refineEndRef = useRef<HTMLDivElement | null>(null)
@@ -387,6 +386,33 @@ export default function CourseDesign() {
       setSlidesError(e.message || 'Failed to generate slides')
     } finally {
       setSlidesLoading(false)
+    }
+  }
+
+  // ── Assign Lesson ──────────────────────────────────────────────────────
+  const handleAssignLesson = async () => {
+    if (!aiResult || assignLoading) return
+    setAssignLoading(true)
+    setAssignError('')
+    try {
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+      let code = ''
+      for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)]
+      const { data: { user } } = await supabase.auth.getUser()
+      const { error } = await supabase.from('assignments').insert({
+        join_code: code,
+        teacher_id: user?.id ?? null,
+        title: aiTopic || 'Untitled Lesson',
+        lesson_content: aiResult,
+      })
+      if (error) throw error
+      setJoinCode(code)
+      setShowAssignModal(true)
+    } catch (e: any) {
+      console.error('[Assign] Error:', e)
+      setAssignError(e.message || 'Failed to assign lesson')
+    } finally {
+      setAssignLoading(false)
     }
   }
 
@@ -635,6 +661,24 @@ export default function CourseDesign() {
             {slidesError && <p className="mt-2 text-sm text-red-500">{slidesError}</p>}
           </div>
         )}
+
+        {/* ── Assign Lesson CTA ──────────────────────────────────────────── */}
+        {aiResult && (
+          <div className="mt-4">
+            <button
+              onClick={handleAssignLesson}
+              disabled={assignLoading}
+              className="w-full bg-white border-2 border-violet-200 text-violet-700 py-3 px-6 rounded-xl font-semibold hover:bg-violet-50 hover:border-violet-300 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              {assignLoading ? (
+                <span className="flex items-center gap-2"><svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" /></svg>Creating...</span>
+              ) : (
+                <><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2" /><rect x="8" y="2" width="8" height="4" rx="1" ry="1" /><path d="M9 14l2 2 4-4" /></svg>Assign Lesson</>
+              )}
+            </button>
+            {assignError && <p className="mt-2 text-sm text-red-500 text-center">{assignError}</p>}
+          </div>
+        )}
       </div>
 
       {/* ── Lesson Templates & Discussion Questions ──────────────────── */}
@@ -739,6 +783,31 @@ export default function CourseDesign() {
           typography={typography}
           onClose={() => { setSlides(null); setCurrentTheme(null); setTypography(null) }}
         />
+      )}
+
+      {/* ── Assign Lesson Modal ──────────────────────────────────────────── */}
+      {showAssignModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShowAssignModal(false)}>
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#16A34A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
+              </div>
+              <h3 className="text-xl font-bold text-gray-900">Lesson Assigned!</h3>
+              <p className="text-sm text-gray-500 mt-1">Share the join code with your students</p>
+            </div>
+            <div className="bg-violet-50 rounded-xl p-4 text-center mb-4">
+              <p className="text-xs text-violet-500 mb-1 font-medium">Join Code</p>
+              <p className="text-4xl font-mono font-bold text-violet-700 tracking-widest">{joinCode}</p>
+            </div>
+            <button onClick={() => { navigator.clipboard.writeText(window.location.origin + '/?code=' + joinCode) }}
+              className="w-full bg-violet-600 text-white py-3 rounded-xl font-medium hover:bg-violet-700 transition-colors flex items-center justify-center gap-2 mb-3">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" /></svg>
+              Copy Share Link
+            </button>
+            <button onClick={() => setShowAssignModal(false)} className="w-full text-gray-500 py-2 text-sm hover:text-gray-700 transition-colors">Close</button>
+          </div>
+        </div>
       )}
     </div>
   )

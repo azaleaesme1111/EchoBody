@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react'
-import { supabase } from '@/utils/supabase'
+import { supabase, withTimeout, withRetry } from '@/utils/supabase'
 import AuthModal from '@/components/AuthModal'
 
 export interface User {
@@ -70,7 +70,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     console.log('[Auth] Initializing — checking existing session...')
 
     // Check existing session
-    supabase.auth.getSession().then(({ data, error }) => {
+    withTimeout(supabase.auth.getSession(), 10000, 'getSession')
+      .then(({ data, error }) => {
       if (error) {
         console.error('[Auth] getSession error:', error.message)
         setLoading(false)
@@ -114,11 +115,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function fetchProfile(userId: string): Promise<User | null> {
     try {
       console.log('[Auth] Fetching profile for userId:', userId)
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, name, role')
-        .eq('id', userId)
-        .single()
+      const { data, error } = await withTimeout(
+        supabase.from('profiles').select('id, name, role').eq('id', userId).single(),
+        8000,
+        'fetchProfile'
+      )
 
       if (error) {
         console.error('[Auth] Profile query error:', error.message, error.code)
@@ -139,13 +140,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string, _role: 'teacher' | 'student') => {
     try {
       console.log('[Auth] Login attempt:', email, 'role:', _role)
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+      const { data, error } = await withRetry(
+        () => withTimeout(
+          supabase.auth.signInWithPassword({ email, password }),
+          10000,
+          'signInWithPassword'
+        ),
+        1,
+        3000
+      )
 
       if (error) {
-        console.error('[Auth] Login failed — Supabase error:', error.message, error.code)
+        console.error('[Auth] Login failed — Supabase error:', JSON.stringify({ message: error.message, code: error.code, status: error.status }))
         // Map raw Supabase errors to user-friendly messages
         const msg = error.message.toLowerCase()
-        if (msg.includes('invalid login credentials'))
+        if (msg.includes('invalid login credentials') || msg.includes('user not found'))
           return { error: 'Invalid email or password. Please check and try again.' }
         if (msg.includes('email not confirmed'))
           return { error: 'Email not yet verified. Please check your inbox for the confirmation link.' }
@@ -171,21 +180,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log('[Auth] User state set:', profile.name, profile.role)
       return { error: null }
     } catch (e: any) {
-      console.error('[Auth] Login exception:', e.message || e)
-      return { error: e.message || 'An unexpected error occurred. Please try again.' }
+      console.error('[Auth] Login exception:', JSON.stringify({ message: e.message, name: e.name, stack: e.stack?.split('\n').slice(0, 3).join(' | ') }))
+      const msg = e.message || ''
+      if (msg.includes('timed out'))
+        return { error: 'Connection timed out. The server may be waking up — please try again in a few seconds.' }
+      if (msg.includes('Failed to fetch') || msg.includes('ERR_CONNECTION') || msg.includes('NetworkError'))
+        return { error: 'Network connection failed. Please check your internet and try again.' }
+      return { error: msg || 'An unexpected error occurred. Please try again.' }
     }
   }
 
   const register = async (email: string, password: string, name: string, role: 'teacher' | 'student') => {
     try {
       console.log('[Auth] Register attempt:', email, 'name:', name, 'role:', role)
-      const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { name, role } } })
+      const { data, error } = await withRetry(
+        () => withTimeout(
+          supabase.auth.signUp({ email, password, options: { data: { name, role }, emailRedirectTo: undefined } }),
+          10000,
+          'signUp'
+        ),
+        1,
+        3000
+      )
 
       if (error) {
-        console.error('[Auth] Register failed:', error.message)
+        console.error('[Auth] Register failed:', JSON.stringify({ message: error.message, code: error.code, status: error.status }))
         const msg = error.message.toLowerCase()
         if (msg.includes('already registered') || msg.includes('already exists'))
           return { error: 'This email is already registered. Please log in instead.' }
+        if (msg.includes('password'))
+          return { error: 'Password must be at least 6 characters.' }
         return { error: error.message }
       }
 
@@ -208,8 +232,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       return { error: null }
     } catch (e: any) {
-      console.error('[Auth] Register exception:', e.message || e)
-      return { error: e.message || 'An unexpected error occurred.' }
+      console.error('[Auth] Register exception:', JSON.stringify({ message: e.message, name: e.name, stack: e.stack?.split('\n').slice(0, 3).join(' | ') }))
+      const msg = e.message || ''
+      if (msg.includes('timed out'))
+        return { error: 'Connection timed out. The server may be waking up — please try again in a few seconds.' }
+      if (msg.includes('Failed to fetch') || msg.includes('ERR_CONNECTION') || msg.includes('NetworkError'))
+        return { error: 'Network connection failed. Please check your internet and try again.' }
+      return { error: msg || 'An unexpected error occurred.' }
     }
   }
 

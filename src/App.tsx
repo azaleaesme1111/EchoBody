@@ -8,12 +8,15 @@ import AnonymousBox from './pages/AnonymousBox'
 import FAQ from './pages/FAQ'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
+import CheckinPage from './pages/CheckinPage'
+import TeacherDashboard from './pages/TeacherDashboard'
 
 export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/checkin/:code" element={<CheckinPage />} />
       <Route path="/" element={<Layout />}>
         <Route index element={<HomePage />} />
         <Route path="course" element={<CourseDesign />} />
@@ -21,6 +24,7 @@ export default function App() {
         <Route path="games" element={<MiniGames />} />
         <Route path="questions" element={<AnonymousBox />} />
         <Route path="faq" element={<FAQ />} />
+        <Route path="dashboard" element={<TeacherDashboard />} />
         <Route path="*" element={<Navigate to="." replace />} />
       </Route>
     </Routes>

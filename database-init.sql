@@ -76,3 +76,77 @@ create policy "Teachers can update answers"
 -- 8. Create index for performance
 create index idx_anonymous_questions_answered on anonymous_questions(answered);
 create index idx_anonymous_questions_created on anonymous_questions(created_at desc);
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 9. Assignments table (teacher → lesson dispatch with join codes)
+-- ═══════════════════════════════════════════════════════════════════════════
+create table if not exists assignments (
+  id uuid default gen_random_uuid() primary key,
+  join_code text unique not null,
+  teacher_id uuid references profiles(id),
+  title text not null,
+  lesson_content text not null,
+  created_at timestamptz default now()
+);
+
+alter table assignments enable row level security;
+
+drop policy if exists "Anyone can view assignments" on assignments;
+create policy "Anyone can view assignments"
+  on assignments for select
+  to anon, authenticated
+  using (true);
+
+drop policy if exists "Authenticated users can create assignments" on assignments;
+create policy "Authenticated users can create assignments"
+  on assignments for insert
+  to authenticated
+  with check (auth.uid() is not null);
+
+drop policy if exists "Teachers can update own assignments" on assignments;
+create policy "Teachers can update own assignments"
+  on assignments for update
+  to authenticated
+  using (teacher_id = auth.uid());
+
+-- ═══════════════════════════════════════════════════════════════════════════
+-- 10. Assignment submissions (student check-in / task completion)
+-- ═══════════════════════════════════════════════════════════════════════════
+create table if not exists assignment_submissions (
+  id uuid default gen_random_uuid() primary key,
+  assignment_id uuid references assignments(id) not null,
+  student_name text not null,
+  user_id uuid references auth.users(id),
+  step1_reading boolean default false,
+  step2_game_score int default 0,
+  step2_completed boolean default false,
+  step3_question text,
+  step3_completed boolean default false,
+  completed_at timestamptz,
+  created_at timestamptz default now()
+);
+
+alter table assignment_submissions enable row level security;
+
+drop policy if exists "Anyone can view submissions" on assignment_submissions;
+create policy "Anyone can view submissions"
+  on assignment_submissions for select
+  to anon, authenticated
+  using (true);
+
+drop policy if exists "Anyone can insert submissions" on assignment_submissions;
+create policy "Anyone can insert submissions"
+  on assignment_submissions for insert
+  to anon, authenticated
+  with check (true);
+
+drop policy if exists "Anyone can update submissions" on assignment_submissions;
+create policy "Anyone can update submissions"
+  on assignment_submissions for update
+  to anon, authenticated
+  using (true)
+  with check (true);
+
+-- Indexes
+create index if not exists idx_assignments_join_code on assignments(join_code);
+create index if not exists idx_submissions_assignment_id on assignment_submissions(assignment_id);
