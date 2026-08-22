@@ -5,7 +5,7 @@ import { useAuth } from '@/providers/AuthProvider'
 
 export default function Layout() {
   const location = useLocation()
-  const { user, logout } = useAuth()
+  const { user, logout, openAuthModal } = useAuth()
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
 
@@ -38,7 +38,10 @@ export default function Layout() {
                 <button onClick={handleLogout} className="text-xs text-gray-400 hover:text-gray-600 transition-colors">Log out</button>
               </div>
             ) : (
-              <Link to="/login" className="text-sm text-violet-600 font-medium hover:text-violet-700">Log in</Link>
+              <div className="flex items-center gap-2">
+                <button onClick={openAuthModal} className="text-sm text-violet-600 font-medium hover:text-violet-700 px-3 py-1.5 rounded-lg hover:bg-violet-50 transition-all">Log in</button>
+                <button onClick={openAuthModal} className="text-sm bg-violet-600 text-white font-medium px-4 py-1.5 rounded-lg hover:bg-violet-700 transition-all">Sign up</button>
+              </div>
             )}
             <button onClick={() => setMenuOpen(!menuOpen)} className="lg:hidden p-2 rounded-lg hover:bg-violet-50 transition-colors">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

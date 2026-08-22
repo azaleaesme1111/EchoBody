@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react'
+import { useAuth } from '@/providers/AuthProvider'
 
 const TEMPLATES: { id: string; title: string; grade: string; duration: string; objectives: string[]; steps: string[] }[] = [
   {
@@ -84,6 +85,7 @@ const TOPIC_EXAMPLES = [
 ]
 
 export default function CourseDesign() {
+  const { requireAuth } = useAuth()
   const [tab, setTab] = useState<'template' | 'discussion'>('template')
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null)
   const [expanded, setExpanded] = useState(false)
@@ -96,6 +98,7 @@ export default function CourseDesign() {
 
   const handleGenerate = async () => {
     if (!aiTopic.trim()) return
+    if (!requireAuth()) return
     if (debounceRef.current) clearTimeout(debounceRef.current)
 
     debounceRef.current = setTimeout(async () => {

@@ -1,5 +1,6 @@
-import { createContext, useContext, useState, ReactNode, useEffect } from 'react'
+import { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react'
 import { supabase } from '@/utils/supabase'
+import AuthModal from '@/components/AuthModal'
 
 export interface User {
   id: string
@@ -27,42 +28,71 @@ export interface Scenario {
 interface AuthCtx {
   user: User | null
   loading: boolean
+  authModalOpen: boolean
   login: (email: string, password: string, role: 'teacher' | 'student') => Promise<{ error: string | null }>
   register: (email: string, password: string, name: string, role: 'teacher' | 'student') => Promise<{ error: string | null }>
   logout: () => void
+  openAuthModal: () => void
+  closeAuthModal: () => void
+  /** Returns true if logged in; otherwise opens the auth modal and returns false */
+  requireAuth: () => boolean
 }
 
 const C = createContext<AuthCtx>({
   user: null,
   loading: false,
+  authModalOpen: false,
   login: async () => ({ error: null }),
   logout: () => {},
   register: async () => ({ error: null }),
+  openAuthModal: () => {},
+  closeAuthModal: () => {},
+  requireAuth: () => false,
 })
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const [authModalOpen, setAuthModalOpen] = useState(false)
+
+  const openAuthModal = useCallback(() => setAuthModalOpen(true), [])
+  const closeAuthModal = useCallback(() => setAuthModalOpen(false), [])
+
+  const requireAuth = useCallback((): boolean => {
+    if (user) return true
+    setAuthModalOpen(true)
+    return false
+  }, [user])
 
   useEffect(() => {
+    let unsub: (() => void) | undefined
+
     // Check existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data }) => {
+      const session = data?.session
       if (session?.user) {
         fetchProfile(session.user.id).then(setUser)
       }
       setLoading(false)
+    }).catch(() => {
+      setLoading(false)
     })
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        fetchProfile(session.user.id).then(setUser)
-      } else {
-        setUser(null)
-      }
-    })
+    try {
+      const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+        if (session?.user) {
+          fetchProfile(session.user.id).then(setUser)
+        } else {
+          setUser(null)
+        }
+      })
+      unsub = data?.subscription?.unsubscribe?.bind(data.subscription)
+    } catch {
+      // Supabase not configured — skip listener
+    }
 
-    return () => subscription.unsubscribe()
+    return () => unsub?.()
   }, [])
 
   async function fetchProfile(userId: string): Promise<User | null> {
@@ -114,8 +144,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <C.Provider value={{ user, loading, login, register, logout }}>
+    <C.Provider value={{ user, loading, authModalOpen, login, register, logout, openAuthModal, closeAuthModal, requireAuth }}>
       {children}
+      <AuthModal />
     </C.Provider>
   )
 }

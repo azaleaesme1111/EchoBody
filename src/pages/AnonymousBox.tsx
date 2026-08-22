@@ -38,7 +38,7 @@ const DEMO_QUESTIONS: Question[] = [
 ]
 
 export default function AnonymousBox() {
-  const { user } = useAuth()
+  const { user, requireAuth } = useAuth()
   const [questions, setQuestions] = useState<Question[]>(DEMO_QUESTIONS)
   const [newContent, setNewContent] = useState('')
   const [isPublic, setIsPublic] = useState(false)
@@ -49,6 +49,7 @@ export default function AnonymousBox() {
 
   const handleAsk = () => {
     if (!newContent.trim()) return
+    if (!requireAuth()) return
     const q: Question = {
       id: Date.now().toString(),
       content: newContent.trim(),
@@ -65,6 +66,7 @@ export default function AnonymousBox() {
 
   const handleReply = (id: string) => {
     if (!replyText.trim()) return
+    if (!requireAuth()) return
     setQuestions(prev => prev.map(q => q.id === id ? { ...q, answered: true, reply: replyText.trim(), answeredBy: user?.name } : q))
     setReplyText('')
     setViewingId(null)

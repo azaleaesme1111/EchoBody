@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useAuth } from '@/providers/AuthProvider'
 
 const QUIZZES = [
   {
@@ -42,6 +43,7 @@ const QUIZZES = [
 const QUIZ_TITLE = 'Consent Judgment Quiz'
 
 export default function MiniGames() {
+  const { requireAuth } = useAuth()
   const [currentIdx, setCurrentIdx] = useState(0)
   const [score, setScore] = useState(0)
   const [selected, setSelected] = useState<number | null>(null)
@@ -63,6 +65,7 @@ export default function MiniGames() {
       setSelected(null)
       setShowResult(false)
     } else {
+      if (!requireAuth()) return
       setFinished(true)
     }
   }
